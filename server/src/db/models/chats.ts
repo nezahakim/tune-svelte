@@ -1,16 +1,22 @@
 import type { ObjectId } from "mongodb";
+import type { User } from "../models/users";
 
 export interface Chat{
-    _id: ObjectId;
+    _id?: ObjectId;
     chatType: string;
-    chatParticipants?: []
+    participants?: [];
+    imageUrl?: string;
+    chatName?: string;
+    lastMessage?: string;
+    createdAt: Date;
 }
 
 export interface ChatMessage{
-    _id: ObjectId;
+    _id?: ObjectId;
     chatId: ObjectId;
     from: ObjectId;
-    to: ObjectId;
     message: string;
     createdAt: Date;
+    readBy?: User[];
+    reactions?: {id: ObjectId, emoji: string }[];
 }

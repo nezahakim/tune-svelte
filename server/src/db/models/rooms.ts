@@ -11,7 +11,7 @@ export interface Room{
 export interface RoomParticipant{
     _id?: ObjectId;
     roomId: ObjectId;
-    participantId: string;
+    participantId: ObjectId;
     role: string;
     joinDate: Date;
 }

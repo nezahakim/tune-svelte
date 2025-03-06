@@ -1,8 +1,11 @@
- // Message interface
- export interface ChatMessage {
-    text: string;
-    sender: 'me' | 'neza';
-    time: string;
+ export interface ChatMessage{
+    _id: string;
+    chatId: string;
+    from: string;
+    message: string;
+    createdAt: Date;
+    readBy: User[];
+    reactions: {id: string, emoji: string }[];
     status: 'sent' | 'delivered' | 'read';
     gift?: Gift | null;
 }
@@ -26,4 +29,30 @@ export interface User{
     phone: {code: number, number: number};
     bio?: string;
     joinDate?: Date;
+}
+
+
+export interface Chat {
+	type: string;
+    id: string;
+    name: string;
+    lastMessage: string;
+    avatar: string;
+    isOnline: boolean;
+    participants: string[];
+    unreadCount?: number;
+    timestamp: Date;
+}
+
+export interface Message {
+    _id: string;
+    chatId: string;
+    content: string;
+    sender: string;
+    timestamp: Date;
+    read: boolean;
+    reactions?: Array<{
+        userId: string;
+        type: string;
+    }>;
 }

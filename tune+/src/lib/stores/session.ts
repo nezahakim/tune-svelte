@@ -91,6 +91,7 @@ function createSessionStore() {
       // Remove from localStorage if available
       if (isLocalStorageAvailable) {
         localStorage.removeItem('userSession');
+        return true
       }
     }
   };

@@ -6,11 +6,25 @@ export function generateRandomCode(length: number): string {
         .slice(2, 2 + length);
 }
 
+
 const transporter = createTransport({
-    service: 'gmail', // or your email service
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: "8726d7001@smtp-brevo.com",
+        pass: "DzQpRC027nHgmUhL"
+    },
+    tls: {
+        rejectUnauthorized: true  // Change to true for production
+    }
+});
+
+transporter.verify((error, success) => {
+    if (error) {
+      console.error("SMTP Connection Error:", error);
+    } else {
+      console.log("SMTP Connection Successful!");
     }
 });
 

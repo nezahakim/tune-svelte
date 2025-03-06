@@ -5,7 +5,9 @@ export interface User{
     name?: string;
     username?: string;
     email: string;
-    phone: {code: number, number: number};
+    phone?: {code: number, number: number};
+    password?: string;
+    avatar: string;
     bio?: string;
     joinDate?: Date;
 }

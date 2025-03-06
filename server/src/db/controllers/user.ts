@@ -1,36 +1,3 @@
-// import { usersCollection } from "../collections";
-// import type { User } from "../models/users";
-// import type { ObjectId } from "mongodb";
-
-// class UserController{
-//     public async addUser(user: User){
-//         return await usersCollection.insertOne(user)
-//     }
-
-//     public async deleteUser(_id: ObjectId){
-//         return await usersCollection.deleteOne({ _id })
-//     }
-
-//     public async getUsers(){
-//         return usersCollection.find({})
-//     }
-
-//     public async getUserById(_id: ObjectId){
-//         return await usersCollection.findOne({ _id })
-//     }
-
-//     public async getUserLogin({email, phone}:User){
-//         return await usersCollection.findOne({ email, phone})
-//     }
-
-//     public async updateUser(_id: ObjectId, user: User){
-//         return await usersCollection.updateOne({ _id }, { $set:user })
-//     }
-// }
-
-
-// export default UserController;
-
 import { usersCollection } from "../collections";
 import type { User } from "../models/users";
 import type { ObjectId } from "mongodb";
@@ -96,6 +63,21 @@ class UserController {
         }
     }
 
+    public async deleteAllUsers(): Promise<UserResponse> {
+        try {
+            const result = await usersCollection.deleteMany({});
+            return {
+                success: result.acknowledged && result.deletedCount > 0,
+                message: result.deletedCount > 0 ? 'All users deleted successfully' : 'No users found'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error occurred'
+            };
+        }
+    }
+
     public async getUserById(_id: ObjectId): Promise<UserResponse> {
         try {
             const user = await usersCollection.findOne({ _id });
@@ -118,20 +100,22 @@ class UserController {
         }
     }
 
-    public async getUserLogin({email, phone}: User): Promise<UserResponse> {
+    public async getUserLogin({identifier, password}: {identifier: string, password: string}): Promise<UserResponse> {
         try {
-            const user = await usersCollection.findOne({ email, phone });
+            const user = await usersCollection.findOne({ $or: [{ email: identifier }, { username: identifier }], password });
             if (user) {
                 return {
                     success: true,
                     data: user,
                     token: user._id.toString()
                 };
+            }else{
+                return {
+                    success: false,
+                    message: 'Invalid credentials'
+                };
             }
-            return {
-                success: false,
-                message: 'Invalid credentials'
-            };
+           
         } catch (error) {
             return {
                 success: false,

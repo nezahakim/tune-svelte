@@ -1,6 +1,4 @@
 <script lang='ts'>
-
-import {flip} from 'svelte/animate'
 import { goto } from '$app/navigation'
 
 let timeToUpdate = $state<boolean>(false)
