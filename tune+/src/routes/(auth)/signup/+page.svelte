@@ -13,19 +13,41 @@
       }
     });
 
-  const STEPS = {
-      PERSONAL: 1,
-      CONTACT: 2,
-      SECURITY: 3,
-      CONFIRM: 4,
-      SUCCESS: 5
-  };
+    const STEPS = {
+        PERSONAL: 1,
+        CONTACT: 2,
+        SECURITY: 3,
+        AVATAR: 4,
+        PREFERENCES: 5,
+        CONFIRM: 6,
+        SUCCESS: 7
+    };
 
   // State management
   let currentStep = $state(STEPS.PERSONAL);
   let loading = $state(false);
   let error = $state("");
   let success = $state(false);
+
+  let avatar = $state("");
+  let preferences = $state<User['preferences']>({
+        theme: 'light',
+        color: 'blue-500'
+  });
+
+     // Available avatar options
+     const avatars = [
+        '/avatars/avatar1.jpg',
+        '/avatars/avatar2.jpg',
+        '/avatars/avatar3.jpg',
+    ];
+ // Available color options
+ const colorOptions = [
+        { name: 'Blue', value: 'blue-500' },
+        { name: 'Green', value: 'green-500' },
+        { name: 'Amber', value: 'amber-500' },
+        { name: 'Red', value: 'red-300' }
+    ];
 
   let { name, username, email, phone, password, confirmPassword } = $state<User & {password: string, confirmPassword: string}>({
       name: "",
@@ -102,21 +124,45 @@
   }
 
   // Navigation functions
-  function nextStep() {
-      if (currentStep === STEPS.PERSONAL) {
-          if (validateName() && validateUsername()) {
-              currentStep = STEPS.CONTACT;
-          }
-      } else if (currentStep === STEPS.CONTACT) {
-          if (validateEmail() && validatePhone()) {
-              currentStep = STEPS.SECURITY;
-          }
-      } else if (currentStep === STEPS.SECURITY) {
-          if (validatePassword() && validateConfirmPassword()) {
-              currentStep = STEPS.CONFIRM;
-          }
-      }
-  }
+//   function nextStep() {
+//       if (currentStep === STEPS.PERSONAL) {
+//           if (validateName() && validateUsername()) {
+//               currentStep = STEPS.CONTACT;
+//           }
+//       } else if (currentStep === STEPS.CONTACT) {
+//           if (validateEmail() && validatePhone()) {
+//               currentStep = STEPS.SECURITY;
+//           }
+//       } else if (currentStep === STEPS.SECURITY) {
+//           if (validatePassword() && validateConfirmPassword()) {
+//               currentStep = STEPS.CONFIRM;
+//           }
+//       }
+//   }
+
+// Update nextStep function
+function nextStep() {
+        if (currentStep === STEPS.PERSONAL) {
+            if (validateName() && validateUsername()) {
+                currentStep = STEPS.CONTACT;
+            }
+        } else if (currentStep === STEPS.CONTACT) {
+            if (validateEmail() && validatePhone()) {
+                currentStep = STEPS.SECURITY;
+            }
+        } else if (currentStep === STEPS.SECURITY) {
+            if (validatePassword() && validateConfirmPassword()) {
+                currentStep = STEPS.AVATAR;
+            }
+        } else if (currentStep === STEPS.AVATAR) {
+            if (avatar) {
+                currentStep = STEPS.PREFERENCES;
+            }
+        } else if (currentStep === STEPS.PREFERENCES) {
+            currentStep = STEPS.CONFIRM;
+        }
+    }
+
 
   function prevStep() {
       if (currentStep > STEPS.PERSONAL) {
@@ -140,13 +186,22 @@
       loading = true;
       error = "";
 
-      const userData = {
-          name,
-          username,
-          email,
-          phone,
-          password
-      };
+    //   const userData = {
+    //       name,
+    //       username,
+    //       email,
+    //       phone,
+    //       password
+    //   };
+    const userData = {
+            name,
+            username,
+            email,
+            phone,
+            password,
+            avatar,
+            preferences
+        };
 
       try {
           const response = await axios.post('http://localhost:3000/auth/signup', userData, {
@@ -157,18 +212,21 @@
 
           if (response.data.success) {
               // Update session with user data
+              console.log(response.data.data)
               session.login({
-                  id: response.data._id,
+                  id: response.data?.data?.data?._id,
                   name,
                   username,
-                  email
+                  email,
+                  avatar,
+                  preferences,
               }, response.data.token);
 
               success = true;
               currentStep = STEPS.SUCCESS;
           }
       } catch (error: any) {
-          console.error('Error:', error.response?.data || error.message);
+          console.error('Error:', error.response?.data || error);
           error = error.response?.data?.message || "Something went wrong. Please try again.";
       } finally {
           loading = false;
@@ -200,11 +258,26 @@
                   <div class={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= STEPS.SECURITY ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>3</div>
                   <span class="text-xs mt-1">Security</span>
               </div>
-              <div class={`flex-1 h-1 mx-2 ${currentStep >= STEPS.CONFIRM ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+              <!-- <div class={`flex-1 h-1 mx-2 ${currentStep >= STEPS.CONFIRM ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
               <div class="flex flex-col items-center">
                   <div class={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= STEPS.CONFIRM ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>4</div>
                   <span class="text-xs mt-1">Confirm</span>
-              </div>
+              </div> -->
+              <div class={`flex-1 h-1 mx-2 ${currentStep >= STEPS.AVATAR ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+        <div class="flex flex-col items-center">
+            <div class={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= STEPS.AVATAR ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>4</div>
+            <span class="text-xs mt-1">Avatar</span>
+        </div>
+        <div class={`flex-1 h-1 mx-2 ${currentStep >= STEPS.PREFERENCES ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+        <div class="flex flex-col items-center">
+            <div class={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= STEPS.PREFERENCES ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>5</div>
+            <span class="text-xs mt-1">Theme</span>
+        </div>
+        <div class={`flex-1 h-1 mx-2 ${currentStep >= STEPS.CONFIRM ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+        <div class="flex flex-col items-center">
+            <div class={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= STEPS.CONFIRM ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>6</div>
+            <span class="text-xs mt-1">Confirm</span>
+        </div>
           </div>
       </div>
 
@@ -334,18 +407,96 @@
                       {/if}
                   </div>
               </div>
-          {:else if currentStep === STEPS.CONFIRM}
+          <!-- Add these new sections in the form content area -->
+{:else if currentStep === STEPS.AVATAR}
+<div class="text-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Choose Your Avatar</h2>
+    <p class="text-gray-600 mt-1">Select an avatar for your profile</p>
+</div>
+
+<div class="grid grid-cols-3 gap-4">
+    {#each avatars as avatarPath}
+        <button
+            type="button"
+            class={`p-4 rounded-lg border-2 transition-all ${avatar === avatarPath ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+            onclick={() => avatar = avatarPath}
+        >
+            <img 
+                src={avatarPath} 
+                alt="Avatar option" 
+                class="w-full h-auto rounded-lg"
+            />
+        </button>
+    {/each}
+</div>
+
+{:else if currentStep === STEPS.PREFERENCES}
+
+<div class="text-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Customize Your Experience</h2>
+    <p class="text-gray-600 mt-1">Choose your theme and accent color</p>
+</div>
+
+<div class="space-y-6">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2" for="">Theme</label>
+        <div class="flex gap-4">
+            <button
+                type="button"
+                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences.theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                onclick={() => preferences.theme = 'light'}
+            >
+                <div class="bg-white p-2 rounded shadow-sm mb-2">
+                    <div class="h-2 w-full bg-gray-200 rounded"></div>
+                </div>
+                <span class="text-sm font-medium">Light</span>
+            </button>
+            <button
+                type="button"
+                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences.theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                onclick={() => preferences.theme = 'dark'}
+            >
+                <div class="bg-gray-800 p-2 rounded shadow-sm mb-2">
+                    <div class="h-2 w-full bg-gray-600 rounded"></div>
+                </div>
+                <span class="text-sm font-medium">Dark</span>
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2" for="">Accent Color</label>
+        <div class="grid grid-cols-4 gap-4">
+            {#each colorOptions as color}
+                <button
+                    type="button"
+                    class={`p-4 rounded-lg border-2 transition-all ${preferences.color === color.value ? 'border-gray-800' : 'border-gray-200 hover:border-gray-400'}`}
+                    onclick={() => preferences.color = color.value}
+                >
+                    <div class={`w-full h-8 rounded bg-${color.value} mb-2`}></div>
+                    <span class="text-sm font-medium">{color.name}</span>
+                </button>
+            {/each}
+        </div>
+    </div>
+</div>
+        
+              {:else if currentStep === STEPS.CONFIRM}
               <div class="text-center mb-6">
                   <h2 class="text-2xl font-bold text-gray-800">Review Your Details</h2>
                   <p class="text-gray-600 mt-1">Please confirm your information</p>
               </div>
-
+          
               <div class="bg-gray-50 p-4 rounded-lg mb-6">
                   <div class="flex flex-col gap-4">
-                      <div>
-                          <p class="text-sm text-gray-500">Name</p>
-                          <p class="font-medium">{name}</p>
+                      <div class="flex items-center gap-4">
+                          <img src={avatar} alt="Selected avatar" class="w-16 h-16 rounded-full border-2 border-gray-200"/>
+                          <div>
+                              <p class="text-sm text-gray-500">Name</p>
+                              <p class="font-medium">{name}</p>
+                          </div>
                       </div>
+                      <!-- Existing confirmation details -->
                       <div>
                           <p class="text-sm text-gray-500">Username</p>
                           <p class="font-medium">{username}</p>
@@ -358,15 +509,20 @@
                           <p class="text-sm text-gray-500">Phone</p>
                           <p class="font-medium">+{phone.code} {phone.number}</p>
                       </div>
+                      <div class="flex justify-between items-center">
+                          <div>
+                              <p class="text-sm text-gray-500">Theme</p>
+                              <p class="font-medium capitalize">{preferences.theme}</p>
+                          </div>
+                          <div>
+                              <p class="text-sm text-gray-500">Color</p>
+                              <div class={`w-6 h-6 rounded bg-${preferences.color}`}></div>
+                          </div>
+                      </div>
                   </div>
               </div>
 
-              {#if error}
-                  <div class="mb-4 p-3 bg-red-50 text-red-800 rounded-lg">
-                      {error}
-                  </div>
-              {/if}
-          {:else if currentStep === STEPS.SUCCESS}
+        {:else if currentStep === STEPS.SUCCESS}
               <div class="text-center py-8">
                   <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

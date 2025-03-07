@@ -7,7 +7,11 @@ export interface User{
     email: string;
     phone?: {code: number, number: number};
     password?: string;
-    avatar: string;
+    avatar?: string;
+    preferences?: {
+        theme: 'light' | 'dark';
+        color: string;
+    };
     bio?: string;
     joinDate?: Date;
 }

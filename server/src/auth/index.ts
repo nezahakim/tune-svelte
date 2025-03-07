@@ -10,11 +10,11 @@ router.post('/signup', async (req, res) => {
         return res.json({ success: false, message: "No data received" });
     }
 
-    const { name, username, email, phone, password } = req.body;
+    const { name, username, email, phone, password, avatar, preferences} = req.body;
     
     try {
-        if (name && username && email && phone && password) {
-            const USR: User = { name, username, email, phone, password};
+        if (name && username && email && phone && password && avatar && preferences) {
+            const USR: User = { name, username, email, phone, password, avatar, preferences};
             const result = await user.addUser(USR);
             
             if (result.success) {

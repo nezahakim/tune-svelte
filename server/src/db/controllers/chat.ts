@@ -114,17 +114,19 @@ class ChatController{
             
             const ChatData = await Promise.all(chats.map(async (chat: Chat) => {
                 const receiverUser = await user.getUserById(new ObjectId(chat?.participants[1]));
-                if (!receiverUser.success) {
-                    throw new Error(`Failed to get user info for ID: ${chat?.participants[1]}`);
+                const senderUser = await user.getUserById(new ObjectId(chat?.participants[0]));
+
+                if (!receiverUser.success || !senderUser.success) {
+                    throw new Error(`Failed to get user info for ID: ${chat?.participants[1]} or ${chat?.participants[0]}`);
                 }
     
                 return {
                     id: chat._id,
+                    chatType: chat.chatType,
                     name: chat.chatType === "private" ? receiverUser.data.name :chat.chatName,
                     lastMessage: chat.lastMessage,
-                    avatar: receiverUser.data.avatar,
                     participants: [
-                        chat?.participants[0], 
+                        senderUser.data, 
                         receiverUser.data
                     ],
                     unreadCount: await chatMessagesCollection.countDocuments({ 
@@ -193,10 +195,17 @@ class ChatController{
         try {
             const result = await chatMessagesCollection.insertOne(message);
             const insertedMessage = await chatMessagesCollection.findOne({ _id: result.insertedId });
+
+           
             
             // Inside createChatMessage method
             if (!insertedMessage) {
                 throw new Error('Failed to insert message');
+            }
+
+            const getUserData = await user.getUserById(insertedMessage.from);
+            if (!getUserData.success) {
+                throw new Error('Failed to get user data');
             }
 
             const updateLastMessage = await chatsCollection.updateOne(
@@ -204,8 +213,9 @@ class ChatController{
                 { 
                     $set: {
                         lastMessage: {
-                            user: insertedMessage.from,
-                            message: insertedMessage.message
+                            user: getUserData.data,
+                            message: insertedMessage.message,
+                            createdAt: insertedMessage.createdAt
                         }
                     }
                 }

@@ -1,290 +1,3 @@
-<!-- <script lang='ts'>
-import { fly, fade, scale } from 'svelte/transition';
-import { onMount } from 'svelte';
-import type { ChatMessage, Gift, User } from '$lib/types';
-import { gifts } from '$lib/gifts';
-import { emojiCategories } from '$lib/emojis';
-import { session } from '$lib/stores/session';
-import { page } from '$app/stores';
-import axios from 'axios';
-import { socketStore } from '$lib/stores/socketStore';
-
-const socket = socketStore.connect();
-let typing = $state(false);
-let typingTimeout:number;
-let unreadMessages = $state(0);
-
-  // State variables
-  let message = $state<string>('');
-  let messages = $state<ChatMessage[]>([]);
-
-  let user =  $session.user?.id;
-  let id =  $page.params.id
-  let chatStatus = $state(false)
-  let chatId = $state<string>()
-  let receiverData = $state<User>()
-
-
-
-  let isTyping = $state(false);
-  let showEmojiPicker = $state(false);
-  let attachmentMenuOpen = $state(false);
-  let isRecording = $state(false);
-  let showScrollButton = $state(false);
-  let showGiftPicker = $state(false);
-  let showGiftAnimation = $state(false);
-  let currentGift = $state<Gift | null>(null);
-  let currentEmojiCategory = $state(0);
-
-onMount( async ()=>{
-    try{
-        getRecieverData()
-
-        const response = await axios.get(`http://localhost:3000/check-chat-status/${user}/${id}`,{
-            headers:{
-                'Content-Type':'application/json'
-            }
-        })
-
-        chatStatus = response.data.success
-        if(response.data.success && response.data.data._id){
-            chatId = response.data.data._id;
-        }
-
-    }catch(error){
-        console.log(error)
-    }
-})
-  
-// svelte-ignore non_reactive_update
-let chatContainer: HTMLDivElement;
-  
-// Check if user has scrolled up
-function handleScroll() {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-      showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
-}
-  
-// Scroll to bottom of chat
-function scrollToBottom() {
-      if (chatContainer) {
-          chatContainer.scrollTo({
-              top: chatContainer.scrollHeight,
-              behavior: 'smooth'
-          });
-      }
-  }
-
-async function handleSend(e: { preventDefault: () => void; }) {
-    e.preventDefault();
-    if (message.trim() !== '') {
-        const messageData = {
-            chatId,
-            from: user,
-            message: message,
-            createdAt: new Date().toISOString(),
-        };
-
-        if(chatId){
-            // Emit message to server
-            socket?.emit('sendMessage', messageData);
-        }else{
-    
-    const chatData =  {
-        chatType: 'private',
-        participants: [user, id],
-        createdAt: new Date(),
-    }
-            socket?.emit('createChat', chatData);
-            socket?.on('chatCreated', data =>{
-                chatId = data._id;
-                socket.emit('sendMessage', messageData);
-            })
-
-        }
-
-        // Clear input
-        message = '';
-        isTyping = false;
-    }
-}
-
-// Add typing indicator handler
-function handleTyping() {
-    if (!isTyping) {
-        socket?.emit('userTyping', { chatId, userId: user });
-    }
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        isTyping = false;
-    }, 3000);
-}
-
-  
-  // Toggle emoji picker
-  function toggleEmojiPicker() {
-      showEmojiPicker = !showEmojiPicker;
-      attachmentMenuOpen = false;
-      showGiftPicker = false;
-  }
-  
-  // Add emoji to message
-  function addEmoji(emoji: string) {
-      message += emoji;
-  }
-  
-  // Toggle attachment menu
-  function toggleAttachmentMenu() {
-      attachmentMenuOpen = !attachmentMenuOpen;
-      showEmojiPicker = false;
-      showGiftPicker = false;
-  }
-  
-  // Toggle gift picker
-  function toggleGiftPicker() {
-      showGiftPicker = !showGiftPicker;
-      showEmojiPicker = false;
-      attachmentMenuOpen = false;
-  }
-  
-  // Toggle voice recording
-  function toggleRecording() {
-      isRecording = !isRecording;
-      if (isRecording) {
-          message = "Recording audio...";
-      } else {
-          message = "";
-      }
-  }
-  
-  // Send gift function
-  function sendGift(gift: Gift) {
-      // Show fullscreen animation
-      currentGift = gift;
-      showGiftAnimation = true;
-      showGiftPicker = false;
-      
-      // Close animation after 3 seconds
-      setTimeout(() => {
-          showGiftAnimation = false;
-          
-          // Add gift message to chat
-          messages = [...messages, {
-              message: `Sent a ${gift.name} gift!`,
-              from: user,
-              createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              status: 'sent',
-              gift: gift
-          }];
-          scrollToBottom();
-          
-          // Simulate response after delay
-          setTimeout(() => {
-              isTyping = true;
-              setTimeout(() => {
-                  isTyping = false;
-                  messages = [...messages, {
-                      message: `Thank you for the amazing ${gift.name} gift!`,
-                      from: user,
-                      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      status: 'sent'
-                  }];
-                  scrollToBottom();
-              }, 2000);
-          }, 1000);
-      }, 3000);
-  }
-  
-  // Change emoji category
-  function changeEmojiCategory(index: number) {
-      currentEmojiCategory = index;
-  }
-
-  async function getRecieverData(){
-    await axios.get(`http://localhost:3000/get-user/${id}`,{
-        headers:{
-            'Content-Type':'application/json'
-        }
-    }).then(response =>{
-        receiverData = response.data.data
-    }).catch(error =>{
-        console.log(error)
-    })
-  }
-
-
-  $effect(() => {
-    if (chatId) {
-        // Join the chat room
-        socket?.emit('joinChat', chatId);
-
-        // Listen for successful join
-        socket?.on('chatJoined', (data) => {
-            messages = data.messages;
-            scrollToBottom();
-        });
-
-        // Listen for new messages
-        socket?.on('newMessage', (message: ChatMessage) => {
-            messages = [...messages, message];
-            scrollToBottom();
-            
-            // If message is not from current user, mark as delivered
-            if (message.from !== user) {
-                socket?.emit('readMessage', { 
-                    messageId: message._id, 
-                    userId: user 
-                });
-            }
-        });
-
-        // Listen for message status updates
-        socket?.on('messageRead', ({ messageId, userId }) => {
-            messages = messages.map(msg => 
-                msg?._id === messageId 
-                    ? { ...msg, status: 'read', readBy: [...(msg.readBy || []), userId] }
-                    : msg
-            );
-        });
-
-        // Listen for typing indicators
-        socket?.on('userTyping', (userId: string) => {
-            if (userId !== user) {
-                isTyping = true;
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    isTyping = false;
-                }, 3000);
-            }
-        });
-
-        // Clean up on unmount
-        return () => {
-            socket?.emit('leaveChat', chatId);
-            socket?.off('chatJoined');
-            socket?.off('newMessage');
-            socket?.off('messageRead');
-            socket?.off('userTyping');
-        };
-    }
-});
-
-$effect(() => {
-    console.log(chatId)
-    if (chatId && chatId?.length > 1) {
-        socket?.emit('getChatMessages', chatId);
-        socket?.on('chatMessages', (messages: ChatMessage[]) => {
-            console.log(messages);
-            messages.push(...messages);
-            scrollToBottom();
-        });
-    }
-
-    scrollToBottom();
-});
- 
-  </script> -->
-
   <script lang='ts'>
     import { fly, fade, scale } from 'svelte/transition';
     import { onMount, onDestroy } from 'svelte';
@@ -328,26 +41,32 @@ $effect(() => {
     const user = $session.user?.id;
     const receiverId = $page.params.id;
     
-    // DOM reference
-    let chatContainer: HTMLDivElement;
+    let chatContainer = $state<HTMLDivElement | null>(null);
+
+function scrollToBottom() {
+  if (chatContainer) {
+    // Force immediate scroll first
+    chatContainer.scrollTop = chatContainer.scrollHeight;
     
-    // Check if chat container exists and scroll to bottom
-    function scrollToBottom() {
-      if (chatContainer) {
-        chatContainer.scrollTo({
-          top: chatContainer.scrollHeight,
-          behavior: 'smooth'
-        });
-      }
-    }
+    // Then apply smooth scroll
+    chatContainer.scrollTo({
+      top: chatContainer.scrollHeight,
+      behavior: 'smooth'
+    });
     
-    // Handle scroll events for "scroll to bottom" button visibility
-    function handleScroll() {
-      if (chatContainer) {
-        const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-        showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
-      }
-    }
+    // Ensure scroll with RAF for dynamic content
+    requestAnimationFrame(() => {
+      chatContainer.scrollTop = chatContainer?.scrollHeight;
+    });
+  }
+}
+
+function handleScroll() {
+  if (chatContainer) {
+    const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+    showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
+  }
+}
     
     // Fetch receiver's user data
     async function getReceiverData() {
@@ -391,6 +110,7 @@ $effect(() => {
     
     // Initialize data on component mount
     onMount(async () => {
+
       if (!userId || !receiverId) {
         console.error('Missing user or receiver ID');
         return;
@@ -400,6 +120,23 @@ $effect(() => {
         getReceiverData(),
         checkChatStatus()
       ]);
+
+
+      if (socket && chatId && chatId.length > 1) {
+
+        // Join the chat room
+      socket.emit('joinChat', chatId);
+      
+      // Listen for successful join
+      socket.on('chatJoined', (data) => {
+        if (data && Array.isArray(data.messages)) {
+          messages = data.messages;
+          scrollToBottom();
+        } 
+    })
+
+      }
+
     });
     
     // Clean up event listeners and timeouts on component destroy
@@ -443,6 +180,8 @@ $effect(() => {
         if (chatId) {
           // Send message through existing chat
           socket?.emit('sendMessage', messageData);
+          scrollToBottom();
+
         } else {
           // Create new chat first
           const chatData = {
@@ -452,6 +191,7 @@ $effect(() => {
           };
           
           socket?.emit('createChat', chatData);
+          scrollToBottom();
         }
         
         // Clear input and typing indicator
@@ -464,6 +204,8 @@ $effect(() => {
       } catch (error) {
         console.error('Error sending message:', error);
       }
+
+      
     }
     
     // Handle typing indicator
@@ -569,16 +311,16 @@ $effect(() => {
     $effect(() => {
       if (!socket || !chatId || !userId) return;
       
-      // Join the chat room
-      socket.emit('joinChat', chatId);
+    //   // Join the chat room
+    //   socket.emit('joinChat', chatId);
       
-      // Listen for successful join
-      socket.on('chatJoined', (data) => {
-        if (data && Array.isArray(data.messages)) {
-          messages = data.messages;
-          scrollToBottom();
-        }
-      });
+    //   // Listen for successful join
+    //   socket.on('chatJoined', (data) => {
+    //     if (data && Array.isArray(data.messages)) {
+    //       messages = data.messages;
+    //       scrollToBottom();
+    //     }
+    //   });
       
       // Listen for new messages
       socket.on('newMessage', (message: ChatMessage) => {
@@ -624,18 +366,18 @@ $effect(() => {
     });
     
     // Load chat messages
-    $effect(() => {
-      if (socket && chatId && chatId.length > 1) {
-        socket.emit('getChatMessages', chatId);
+    // $effect(() => {
+    //   if (socket && chatId && chatId.length > 1) {s
+    //     socket.emit('getChatMessages', chatId);
         
-        socket.on('chatMessages', (chatMessages: ChatMessage[]) => {
-          if (Array.isArray(chatMessages)) {
-            messages = [...messages, ...chatMessages];
-            scrollToBottom();
-          }
-        });
-      }
-    });
+    //     socket.on('chatMessages', (chatMessages: ChatMessage[]) => {
+    //       if (Array.isArray(chatMessages)) {
+    //         messages = [...messages, ...chatMessages];
+    //         scrollToBottom();
+    //       }
+    //     });
+    //   }
+    // });
     
     // Handle chat creation response
     $effect(() => {

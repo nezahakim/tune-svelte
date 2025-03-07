@@ -67,7 +67,9 @@
             id: response.data.user._id,
             name: response.data.user.name,
             username: response.data.user.username,
-            email: response.data.user.email
+            email: response.data.user.email,
+            avatar: response.data.user.avatar,
+            preferences: response.data.user.preferences,
           }, response.data.token);
           
           // Set Authorization header for future requests

@@ -29,6 +29,12 @@ export interface User{
     phone: {code: number, number: number};
     bio?: string;
     joinDate?: Date;
+    avatar?: string;
+    status?: 'online' | 'offline' | 'away';
+    preferences?: {
+        theme: 'light' | 'dark';
+        color: string;
+    };
 }
 
 
@@ -36,12 +42,16 @@ export interface Chat {
 	type: string;
     id: string;
     name: string;
-    lastMessage: string;
+    lastMessage: {
+        user: User;
+        message: string;
+        createdAt: Date;
+    };
     avatar: string;
     isOnline: boolean;
-    participants: string[];
+    participants: User[];
     unreadCount?: number;
-    timestamp: Date;
+    createdAt: Date;
 }
 
 export interface Message {

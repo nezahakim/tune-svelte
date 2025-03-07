@@ -79,7 +79,7 @@
         })
         .filter(chat => 
             chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+            chat.lastMessage.message.toLowerCase().includes(searchQuery.toLowerCase())
         ))
 
     onMount(() => {
@@ -108,11 +108,14 @@
         socketStore.disconnect();
     });
 
-    async function handleChatClick(chatId: string, userId: string) {
+    async function handleChatClick(chatId: string, participants:any) {
+
+        let id = participants[0]?._id === userId ? participants[1]?._id : participants[0]?._id;
+
         try {
-            console.log(chatId, userId)
             socket.emit('joinChat', chatId);
-            await goto(`/chats/${userId}`);
+            goto(`/chats/${id}`);
+            window.location.href = `/chats/${id}`
         } catch (error) {
             console.error('Failed to join chat:', error);
         }
@@ -125,8 +128,34 @@
     function handleCreateNewChat() {
         goto('/chats/new');
     }
-</script>
 
+    function getPreferenceColor(chat: Chat) {
+        if (chat.type === 'private') {
+            return chat.participants[0]?._id === userId ? chat.participants[1].preferences?.color : chat.participants[0].preferences?.color;
+        }else{
+            return 'gray-900';
+        }
+    }
+
+    function getName(chat: Chat){
+        if (chat.type === 'private') {
+            return chat.participants[0]?._id === userId ? chat.participants[1]?.name : chat.participants[0]?.name;
+        }else{
+            return chat.name;
+        }
+    }
+
+    function getAvatar(chat: Chat) {
+        if (chat.type === 'private') {
+            return chat.participants[0]?._id === userId ? chat.participants[1]?.avatar : chat.participants[0]?.avatar;
+        }else{
+            return chat.avatar;
+        }
+    }
+
+</script>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_consider_explicit_label -->
 <main class="h-full flex flex-col justify-between">
     <header class="flex items-center justify-between p-4"> 
@@ -134,7 +163,7 @@
             <img class="w-[24px] h-[24px] bg-blue-500 rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo">
             <span class="font-bold">Tune+</span>
         </div>
-        <i class="w-[24px] h-[24px] text-blue-500 fa-solid fa-ellipsis-vertical"></i>
+        <i class=" w-[24px] h-[24px] text-blue-500 fa-solid fa-ellipsis-vertical"></i>
     </header>
 
     <div class="w-full flex flex-col gap-1">
@@ -169,29 +198,29 @@
         {#each filteredChats as chat (chat.id)}
             <div
                 class="flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
-                onclick={() => handleChatClick(chat.id,chat.participants[1]?._id)}
+                onclick={() => handleChatClick(chat.id, chat.participants)}
             >
                 <div class="w-[40px] h-[40px] bg-gray-200 p-1 ml-4 rounded-xl relative">
-                    <img class="w-[34px] h-[34px] rounded-xl" src={chat.avatar} alt={chat.name}>
+                    <img class="w-[34px] h-[34px] rounded-xl" src={getAvatar(chat)} alt={chat.name}>
                     {#if chat.isOnline}
                         <span class="w-[10px] h-[10px] bg-blue-500 rounded-full absolute bottom-1 right-1"></span>
                     {/if}
                 </div>
                 <div class="py-2 border-b-1 border-gray-300 w-full">
                     <div class="flex justify-between items-center">
-                        <h1 class="font-semibold text-amber-500 text-[14px]">{chat.name}</h1>
-                        {#if chat.timestamp}
-                            <span class="text-xs text-gray-500">
-                                {new Date(chat.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <h1 class="font-semibold text-{getPreferenceColor(chat)} text-[14px]">{getName(chat)}</h1>
+                        {#if chat.lastMessage.createdAt}
+                            <span class="text-xs text-gray-500 mr-4 ">
+                                {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         {/if}
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="flex items-center font-light text-[14px] text-gray-600">
-                            <p class="font-bold text-[12px]">{chat.lastMessage?.user === userId ?'Me':(chat.name).split(' ')[0]}:</p>&nbsp;{chat.lastMessage?.message}
+                            <p class="font-bold text-[12px]">{chat.lastMessage?.user?._id === userId ?'Me':(chat.lastMessage.user.name).split(' ')[0]}:</p>&nbsp;{chat.lastMessage?.message}
                         </span>
                         {#if chat.unreadCount}
-                            <span class="bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                            <span class="bg-blue-500 text-white rounded-full px-2 py-1 text-xs mr-4">
                                 {chat.unreadCount}
                             </span>
                         {/if}
