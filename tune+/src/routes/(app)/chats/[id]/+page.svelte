@@ -401,6 +401,14 @@ function handleScroll() {
         });
       }
     });
+
+
+    function getUserColor(){
+        if($session.user){
+            return $session.user.preferences?.color;
+        }
+    }
+
     </script>
 
   <!-- svelte-ignore a11y_consider_explicit_label -->
@@ -411,34 +419,34 @@ function handleScroll() {
       <!-- Header -->
       <header class="bg-white flex items-center justify-between p-3 shadow-md"> 
           <div class="flex items-center gap-2">
-              <a href="/home" class="p-2 text-amber-500 hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <a href="/home" class="p-2 text-{receiverData?.preferences?.color} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-arrow-left"></i>
               </a>
-              <div class="relative w-[40px] h-[40px] bg-gray-200 p-1 rounded-xl">
-                  <img class="w-[38px] h-[38px] rounded-xl object-cover" src="/1.jpg" alt="Profile Picture">
-                  <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+              <div class="relative flex items-center justify-center w-[40px] h-[40px] bg-{receiverData?.preferences?.color} rounded-xl">
+                  <img class="w-[38px] h-[38px] rounded-xl object-cover" src="{receiverData?.avatar}" alt="Profile Picture">
+                  <span class="absolute bottom-0 right-0 w-3 h-3 bg-{getUserColor()} border-2 border-white rounded-full"></span>
               </div>
               <div class="flex flex-col">
-                  <h1 class="font-semibold text-amber-500 text-[14px]">{receiverData?.name}</h1>
+                  <h1 class="font-semibold text-{receiverData?.preferences?.color} text-[14px]">{receiverData?.name}</h1>
                   <div class="flex items-center font-light text-[13px]">
                       {#if isTyping}
                           <span class="text-gray-600 italic">typing<span class="animate-pulse">...</span></span>
                       {:else}
                           <span class="text-gray-600">online</span>
-                          <span class="flex items-center ml-1 w-[5px] h-[5px] bg-green-400 rounded-full"></span>
+                          <span class="flex items-center ml-1 w-[5px] h-[5px] bg-{getUserColor()} rounded-full"></span>
                       {/if}
                   </div>
               </div>
           </div>
         
           <div class="flex items-center gap-3">
-              <button class="p-2 text-blue-500 hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-phone"></i>
               </button>
-              <button class="p-2 text-blue-500 hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-video"></i>
               </button>
-              <button class="p-2 text-blue-500 hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-ellipsis-v"></i>
               </button>
           </div>
@@ -466,7 +474,7 @@ function handleScroll() {
                     {#if i === 0 || messages[i-1].from !== msg.from}
                         <div class="flex items-center {msg.from === user ? 'justify-end' : 'justify-start'}">
                             <hr class="border-gray-400 {msg.from === user ? 'flex-grow' : 'w-5'}" />
-                            <span class="{msg.from === user ? 'text-amber-500' : 'text-blue-500'} px-2 font-bold text-[10px]">
+                            <span class="{msg.from === user ? 'text-'+getUserColor() : 'text-'+receiverData?.preferences?.color} px-2 font-bold text-[10px]">
                                 {msg.from === user ? 'Me' : receiverData?.username}
                             </span>
                             <hr class="border-gray-400 {msg.from === user ? 'w-5' : 'flex-grow'}" />
@@ -476,7 +484,7 @@ function handleScroll() {
                     <!-- Message bubble -->
                     <div 
                         class="px-3 py-2 rounded-lg {msg.from === user ? 
-                            'bg-amber-100 text-gray-800' : 
+                            'text-gray-800 bg-'+getUserColor()+' bg-opacity-5 ...' : 
                             'bg-blue-100 text-gray-800'} shadow-sm"
                     >
                         {#if msg.gift}
@@ -498,7 +506,7 @@ function handleScroll() {
                                 {:else if msg.status === 'delivered'}
                                     <i class="fas fa-check-double"></i>
                                 {:else if msg.status === 'read'}
-                                    <i class="fas fa-check-double text-blue-500"></i>
+                                    <i class="fas fa-check-double text-{getUserColor()}"></i>
                                 {/if}
                             </span>
                         {/if}
@@ -531,7 +539,7 @@ function handleScroll() {
           <!-- svelte-ignore a11y_consider_explicit_label -->
           <button 
               onclick={scrollToBottom}
-              class="absolute bottom-16 right-4 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-colors duration-200"
+              class="absolute bottom-16 right-4 bg-{getUserColor()} text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-colors duration-200"
               in:scale
               out:fade
           >
@@ -629,7 +637,7 @@ function handleScroll() {
           <button 
               type="button" 
               onclick={toggleGiftPicker}
-              class="p-2 text-pink-500 hover:bg-gray-100 rounded-full transition-colors duration-200"
+              class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200"
           >
               <i class="fas fa-gift"></i>
           </button>
@@ -654,7 +662,7 @@ function handleScroll() {
               <input 
                   bind:value={message} 
                   oninput={handleTyping}
-                  class="p-2 pl-4 pr-10 w-full h-[40px] outline-none border border-gray-300 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
+                  class="p-2 pl-4 pr-10 w-full h-[40px] outline-none border border-gray-300 rounded-full focus:border-{getUserColor()} focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
                   placeholder={isRecording ? "Recording audio..." : "Write a message..."}
                   disabled={isRecording}
               />
@@ -672,7 +680,7 @@ function handleScroll() {
           {#if message.trim() !== ''}
               <button 
                   type="submit" 
-                  class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200 w-10 h-10 flex items-center justify-center"
+                  class="p-2 bg-{getUserColor()} text-white rounded-full hover:bg-blue-600 transition-colors duration-200 w-10 h-10 flex items-center justify-center"
               >
                   <i class="fas fa-paper-plane"></i>
               </button>

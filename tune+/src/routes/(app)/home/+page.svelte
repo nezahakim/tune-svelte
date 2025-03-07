@@ -97,7 +97,6 @@
             socket.emit('getChats', $session.user.id)
             socket.on("chats", (Chats: Chat[]) => {
                 chats.addChats(Chats);
-                console.log(Chats)
             })
 
         }
@@ -129,8 +128,14 @@
         goto('/chats/new');
     }
 
+    function getUserColor(){
+        if($session.user){
+            return $session.user.preferences?.color;
+        }
+    }
+
     function getPreferenceColor(chat: Chat) {
-        if (chat.type === 'private') {
+        if (chat.chatType === 'private') {
             return chat.participants[0]?._id === userId ? chat.participants[1].preferences?.color : chat.participants[0].preferences?.color;
         }else{
             return 'gray-900';
@@ -138,7 +143,7 @@
     }
 
     function getName(chat: Chat){
-        if (chat.type === 'private') {
+        if (chat?.chatType === 'private') {
             return chat.participants[0]?._id === userId ? chat.participants[1]?.name : chat.participants[0]?.name;
         }else{
             return chat.name;
@@ -146,10 +151,24 @@
     }
 
     function getAvatar(chat: Chat) {
-        if (chat.type === 'private') {
+        if (chat.chatType === 'private') {
             return chat.participants[0]?._id === userId ? chat.participants[1]?.avatar : chat.participants[0]?.avatar;
         }else{
             return chat.avatar;
+        }
+    }
+
+    function getLastMessage(chat: Chat){
+        if(chat.chatType === 'private'){
+            return {
+                message: chat.lastMessage.message,
+                user: chat.lastMessage?.user?._id === userId ?'Me:': ''
+            }
+        }else{
+            return {
+                message: chat.lastMessage.message,
+                user: chat.lastMessage?.user?._id === userId ?'Me': chat.lastMessage.user.name.split(' ')[0]
+            }
         }
     }
 
@@ -160,10 +179,10 @@
 <main class="h-full flex flex-col justify-between">
     <header class="flex items-center justify-between p-4"> 
         <div class="flex items-center gap-2">
-            <img class="w-[24px] h-[24px] bg-blue-500 rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo">
+            <img class="w-[24px] h-[24px] bg-{getUserColor()} rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo">
             <span class="font-bold">Tune+</span>
         </div>
-        <i class=" w-[24px] h-[24px] text-blue-500 fa-solid fa-ellipsis-vertical"></i>
+        <i class=" w-[24px] h-[24px] text-{getUserColor()} fa-solid fa-ellipsis-vertical"></i>
     </header>
 
     <div class="w-full flex flex-col gap-1">
@@ -174,7 +193,7 @@
                 bind:value={searchQuery}
                 placeholder="Search..."
             />
-            <i class="fas fa-magnifying-glass text-blue-500 absolute right-6"></i>
+            <i class="fas fa-magnifying-glass text-{getUserColor()} absolute right-6"></i>
         </div>
 
         <div class="border-b-1 border-gray-200 py-1">
@@ -200,8 +219,8 @@
                 class="flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
                 onclick={() => handleChatClick(chat.id, chat.participants)}
             >
-                <div class="w-[40px] h-[40px] bg-gray-200 p-1 ml-4 rounded-xl relative">
-                    <img class="w-[34px] h-[34px] rounded-xl" src={getAvatar(chat)} alt={chat.name}>
+                <div class="flex items-center justify-center w-[40px] h-[40px] bg-{getPreferenceColor(chat)} ml-4 rounded-xl relative">
+                    <img class="w-[40px] h-[40px] rounded-xl" src={getAvatar(chat)} alt={chat.name}>
                     {#if chat.isOnline}
                         <span class="w-[10px] h-[10px] bg-blue-500 rounded-full absolute bottom-1 right-1"></span>
                     {/if}
@@ -217,10 +236,10 @@
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="flex items-center font-light text-[14px] text-gray-600">
-                            <p class="font-bold text-[12px]">{chat.lastMessage?.user?._id === userId ?'Me':(chat.lastMessage.user.name).split(' ')[0]}:</p>&nbsp;{chat.lastMessage?.message}
+                            <p class="font-bold text-[12px]">{getLastMessage(chat).user}</p> {getLastMessage(chat).message}
                         </span>
                         {#if chat.unreadCount}
-                            <span class="bg-blue-500 text-white rounded-full px-2 py-1 text-xs mr-4">
+                            <span class="bg-{getUserColor()} text-white rounded-full px-2 py-1 text-xs mr-4">
                                 {chat.unreadCount}
                             </span>
                         {/if}
@@ -238,7 +257,7 @@
 
     <div class="absolute bottom-0 right-0 m-5">
         <button
-            class="w-[50px] h-[50px] bg-blue-500 rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors duration-200"
+            class="w-[50px] h-[50px] bg-{getUserColor()} rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors duration-200"
             onclick={handleCreateNewChat}
         >
             <i class="fas fa-plus"></i>

@@ -39,6 +39,7 @@ export interface User{
 
 
 export interface Chat {
+    chatType: string;
 	type: string;
     id: string;
     name: string;

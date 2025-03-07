@@ -33,6 +33,7 @@ app.get('/users', async (req, res)=>{
     }
 
 })
+
 app.get('/check-chat-status/:myId/:userId', async (req, res)=>{
     const myId = req.params.myId;
     const userId = req.params.userId;
