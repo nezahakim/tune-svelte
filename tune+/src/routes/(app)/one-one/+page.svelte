@@ -1,8 +1,6 @@
 <script lang='ts'>
     import {fade, scale, fly} from 'svelte/transition'
-    import {goto} from '$app/navigation'
-    import {spring} from 'svelte/motion'
-	
+  
     let visible = $state(false);
     let activeEmoji = $state('fa-face-grin');
 
