@@ -131,7 +131,7 @@ class ChatController{
                     ],
                     unreadCount: await chatMessagesCollection.countDocuments({ 
                         chatId: chat._id, 
-                        readBy: { $nin: [userId] } 
+                        readBy: { $not: {$elemMatch: { _id: new ObjectId(userId) }} } 
                     }),
                     createdAt: chat.createdAt
                 };

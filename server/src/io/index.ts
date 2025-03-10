@@ -168,6 +168,10 @@ export class SocketHandler {
             }
         });
 
+        socket.on("userTyping", ({ chatId, userId }) => {
+            this.io.to(chatId).emit("user-Typing", userId);
+        });
+
         // Leave chat
         socket.on("leaveChat", async (chatId: string) => {
             try {

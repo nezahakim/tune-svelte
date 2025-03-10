@@ -1,416 +1,460 @@
-  <script lang='ts'>
-    import { fly, fade, scale } from 'svelte/transition';
-    import { onMount, onDestroy } from 'svelte';
-    import type { ChatMessage, Gift, User } from '$lib/types';
-    import { gifts } from '$lib/gifts';
-    import { emojiCategories } from '$lib/emojis';
-    import { session } from '$lib/stores/session';
-    import { page } from '$app/stores';
-    import axios from 'axios';
-    import { socketStore } from '$lib/stores/socketStore';
-    
-    // Constants
-    const API_BASE_URL = 'http://localhost:3000';
-    const TYPING_TIMEOUT_DURATION = 3000;
-    const GIFT_ANIMATION_DURATION = 3000;
-    
-    // Socket connection
-    const socket = socketStore.connect();
-    
-    // State variables
-    let message = $state<string>('');
-    let messages = $state<ChatMessage[]>([]);
-    let typing = $state(false);
-    let typingTimeout: number | undefined;
-    let unreadMessages = $state(0);
-    let chatStatus = $state(false);
-    let chatId = $state<string | undefined>(undefined);
-    let receiverData = $state<User | undefined>(undefined);
-    let isTyping = $state(false);
-    let showEmojiPicker = $state(false);
-    let attachmentMenuOpen = $state(false);
-    let isRecording = $state(false);
-    let showScrollButton = $state(false);
-    let showGiftPicker = $state(false);
-    let showGiftAnimation = $state(false);
-    let currentGift = $state<Gift | null>(null);
-    let currentEmojiCategory = $state(0);
-    
-    // User data from session store
-    const userId = $session.user?.id;
-    const user = $session.user?.id;
-    const receiverId = $page.params.id;
-    
-    let chatContainer = $state<HTMLDivElement | null>(null);
+<script lang='ts'>
+  import { fly, fade, scale } from 'svelte/transition';
+  import { onMount, onDestroy } from 'svelte';
+  import type { ChatMessage, Gift, User } from '$lib/types';
+  import { gifts } from '$lib/gifts';
+  import { emojiCategories } from '$lib/emojis';
+  import { session } from '$lib/stores/session';
+  import { page } from '$app/stores';
+  import axios from 'axios';
+  import { socketStore } from '$lib/stores/socketStore';
+  
+  // Constants
+  const API_BASE_URL = 'http://localhost:3000';
+  const TYPING_TIMEOUT_DURATION = 3000;
+  const GIFT_ANIMATION_DURATION = 3000;
+  
+  // Socket connection
+  const socket = socketStore.connect();
+  
+  // User data from session store
+  const userId = $session.user?.id;
+  const receiverId = $page.params.id;
+  
+  // State variables
+  let message = $state<string>('');
+  let messages = $state<ChatMessage[]>([]);
+  let typingTimeout: number | undefined;
+  let chatContainer = $state<HTMLDivElement | null>(null);
+  
+  // UI state variables
+  let typing = $state(false);
+  let unreadMessages = $state(0);
+  let chatStatus = $state(false);
+  let chatId = $state<string | undefined>(undefined);
+  let receiverData = $state<User | undefined>(undefined);
+  let isTyping = $state(false);
+  let showEmojiPicker = $state(false);
+  let attachmentMenuOpen = $state(false);
+  let isRecording = $state(false);
+  let showScrollButton = $state(false);
+  let showGiftPicker = $state(false);
+  let showGiftAnimation = $state(false);
+  let currentGift = $state<Gift | null>(null);
+  let currentEmojiCategory = $state(0);
 
-function scrollToBottom() {
-  if (chatContainer) {
-    // Force immediate scroll first
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-    
-    // Then apply smooth scroll
-    chatContainer.scrollTo({
-      top: chatContainer.scrollHeight,
-      behavior: 'smooth'
-    });
-    
-    // Ensure scroll with RAF for dynamic content
-    requestAnimationFrame(() => {
-      chatContainer.scrollTop = chatContainer?.scrollHeight;
-    });
-  }
-}
+  let InputActive = $state(false);
 
-function handleScroll() {
-  if (chatContainer) {
-    const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-    showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
-  }
-}
-    
-    // Fetch receiver's user data
-    async function getReceiverData() {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/get-user/${receiverId}`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.data && response.data.data) {
-          receiverData = response.data.data;
+
+  // Scroll functions
+  function scrollToBottom() {
+    if (chatContainer) {
+      // Force immediate scroll first
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      
+      // Then apply smooth scroll
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+      
+      // Ensure scroll with RAF for dynamic content
+      requestAnimationFrame(() => {
+        if(chatContainer && chatContainer.scrollTop){
+          chatContainer.scrollTop = chatContainer?.scrollHeight;
         }
-      } catch (error) {
-        console.error('Error fetching receiver data:', error);
+      });
+    }
+  }
+
+  function handleScroll() {
+    if (chatContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
+    }
+  }
+  
+  // API calls
+  async function getReceiverData() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/get-user/${receiverId}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data && response.data.data) {
+        receiverData = response.data.data;
       }
+    } catch (error) {
+      console.error('Error fetching receiver data:', error);
+    }
+  }
+  
+  async function checkChatStatus() {
+    if (!userId || !receiverId) {
+      console.error('Missing user or receiver ID');
+      return;
     }
     
-    // Check if a chat exists between users
-    async function checkChatStatus() {
-      if (!userId || !receiverId) {
-        console.error('Missing user or receiver ID');
-        return;
-      }
-      
-      try {
-        const response = await axios.get(`${API_BASE_URL}/check-chat-status/${userId}/${receiverId}`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        chatStatus = response.data.success;
-        if (response.data.success && response.data.data?._id) {
-          chatId = response.data.data._id;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/check-chat-status/${userId}/${receiverId}`, {
+        headers: {
+          'Content-Type': 'application/json'
         }
-      } catch (error) {
-        console.error('Error checking chat status:', error);
+      });
+      
+      chatStatus = response.data.success;
+      if (response.data.success && response.data.data?._id) {
+        chatId = response.data.data._id;
+        await getInitialChatMessages(response.data.data._id);
+        joinChatRoom(response.data.data._id);
       }
+    } catch (error) {
+      console.error('Error checking chat status:', error);
     }
-    
-    // Initialize data on component mount
-    onMount(async () => {
+  }
 
-      if (!userId || !receiverId) {
-        console.error('Missing user or receiver ID');
-        return;
-      }
-      
-      await Promise.all([
-        getReceiverData(),
-        checkChatStatus()
-      ]);
-
-
-      if (socket && chatId && chatId.length > 1) {
-
-        // Join the chat room
-      socket.emit('joinChat', chatId);
-      
-      // Listen for successful join
-      socket.on('chatJoined', (data) => {
-        if (data && Array.isArray(data.messages)) {
-          messages = data.messages;
-          scrollToBottom();
-        } 
-    })
-
-      }
-
-    });
-    
-    // Clean up event listeners and timeouts on component destroy
-    onDestroy(() => {
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
-      }
-      
-      if (socket && chatId) {
-        socket.emit('leaveChat', chatId);
-        socket.off('chatJoined');
-        socket.off('newMessage');
-        socket.off('messageRead');
-        socket.off('userTyping');
-        socket.off('chatMessages');
-        socket.off('chatCreated');
-      }
-    });
-    
-    // Send a message
-    async function handleSend(e: { preventDefault: () => void; }) {
-      e.preventDefault();
-      
-      if (!userId || !receiverId) {
-        console.error('Missing user or receiver ID');
-        return;
-      }
-      
-      if (message.trim() === '') {
-        return;
-      }
-      
-      const messageData = {
-        chatId,
-        from: userId,
-        message: message.trim(),
-        createdAt: new Date().toISOString(),
-      };
-    
-      try {
-        if (chatId) {
-          // Send message through existing chat
-          socket?.emit('sendMessage', messageData);
-          scrollToBottom();
-
-        } else {
-          // Create new chat first
-          const chatData = {
-            chatType: 'private',
-            participants: [userId, receiverId],
-            createdAt: new Date(),
-          };
-          
-          socket?.emit('createChat', chatData);
-          scrollToBottom();
+  async function getInitialChatMessages(chatId: string) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/get-chat-messages/${chatId}`, {
+        headers: {
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (response.data && response.data.data) {
+        messages = response.data.data;
         
-        // Clear input and typing indicator
-        message = '';
-        isTyping = false;
+        // Mark messages as read when user opens the chat
+        markMessagesAsRead();
+        
+        // After messages are loaded, scroll to bottom
+        setTimeout(scrollToBottom, 100);
+      }
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+    }
+  }
+  
+  // Socket event handling functions
+  function joinChatRoom(chatRoomId: string) {
+    if (socket) {
+      socket.emit('joinChat', chatRoomId);
+    }
+  }
+  
+  function setupSocketListeners() {
+    if (!socket || !userId) return;
+    
+    // Listen for new messages
+    socket.on('newMessage', (message: ChatMessage) => {
+      if (!message) return;
+      
+      messages = [...messages, message];
+      scrollToBottom();
+
+      // If message is not from current user and chat is open, mark as read
+      if (message.from !== userId && document.visibilityState === 'visible') {
+        markMessageAsRead(message._id);
+      }
+    });
+    
+    // Listen for message status updates
+    socket.on('messageRead', ({ messageId, userId: readerId }) => {
+      if (!messageId || !readerId) return;
+
+      messages = messages.map(msg => 
+        msg?._id === messageId 
+          ? { ...msg, status: 'read', readBy: [...(msg.readBy || []), readerId] }
+          : msg
+      );
+    });
+    
+    // Listen for typing indicators
+    socket.on('user-Typing', (typingUserId: string) => {
+      if (typingUserId !== userId) {
+        isTyping = true;
         
         if (typingTimeout) {
           clearTimeout(typingTimeout);
         }
-      } catch (error) {
-        console.error('Error sending message:', error);
+        
+        typingTimeout = window.setTimeout(() => {
+          isTyping = false;
+        }, TYPING_TIMEOUT_DURATION);
+      } else {
+        isTyping = false;
       }
+    });
+    
+    // Handle chat creation response
+    socket.on('chatCreated', (data) => {
+      if (data && data._id) {
+        chatId = data._id;
+        joinChatRoom(data._id);
+        
+        // If we have a pending message, send it now
+        if (message.trim()) {
+          sendMessageToChat(data._id, message.trim());
+          message = '';
+        }
+      }
+    });
+  }
+  
+  // Mark messages as read
+  function markMessagesAsRead() {
+    if (!socket || !userId || !chatId) return;
+    
+    // Get all unread messages from the other user
+    const unreadMessages = messages.filter(
+      msg => msg.from === receiverId && (!msg.readBy || !msg.readBy.some(user => user._id === userId))
+    );
+    
+    // Mark each message as read
+    unreadMessages.forEach(msg => {
+      if (msg._id) {
+        markMessageAsRead(msg._id);
+      }
+    });
+  }
+  
+  function markMessageAsRead(messageId: string) {
+    if (!socket || !userId) return;
+    
+    socket.emit('readMessage', {
+      messageId: messageId,
+      userId: userId
+    });
+  }
+  
+  // Send message helper
+  function sendMessageToChat(chatRoomId: string, messageText: string) {
+    if (!socket || !userId) return;
+    
+    socket.emit('sendMessage', {
+      chatId: chatRoomId,
+      from: userId,
+      message: messageText,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  
+  // Create new chat
+  function createNewChat() {
+    if (!socket || !userId || !receiverId) return;
+    
+    const chatData = {
+      chatType: 'private',
+      participants: [userId, receiverId],
+      createdAt: new Date(),
+    };
+    
+    socket.emit('createChat', chatData);
+  }
+  
+  // Event handlers
+  async function handleSend(e: { preventDefault: () => void; }) {
+    e.preventDefault();
 
-      
+    InputActive = false;
+    
+    if (!userId || !receiverId) {
+      console.error('Missing user or receiver ID');
+      return;
     }
     
-    // Handle typing indicator
-    function handleTyping() {
-      if (!chatId || !userId) return;
-      
-      if (!isTyping) {
-        socket?.emit('userTyping', { chatId, userId });
-        isTyping = true;
+    if (message.trim() === '') {
+      return;
+    }
+    
+    try {
+      if (chatId) {
+        // Send message through existing chat
+        sendMessageToChat(chatId, message.trim());
+      } else {
+        // Create new chat first
+        createNewChat();
+        // Message will be sent when chat is created via socket listener
       }
+      
+      // Clear input and typing indicator
+      message = '';
+      isTyping = false;
       
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
       
-      typingTimeout = window.setTimeout(() => {
-        isTyping = false;
-      }, TYPING_TIMEOUT_DURATION);
+      // Schedule scroll to bottom
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  }
+  
+  function handleTyping() {
+
+    handleIputActive();
+    showEmojiPicker = false;
+
+    if (!chatId || !userId) return;
+    
+    if (!isTyping) {
+      socket?.emit('userTyping', { chatId, userId });
+      isTyping = true;
     }
     
-    // Toggle emoji picker
-    function toggleEmojiPicker() {
-      showEmojiPicker = !showEmojiPicker;
-      attachmentMenuOpen = false;
-      showGiftPicker = false;
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
     }
     
-    // Add emoji to message
-    function addEmoji(emoji: string) {
-      message += emoji;
-    }
+    typingTimeout = window.setTimeout(() => {
+      isTyping = false;
+    }, TYPING_TIMEOUT_DURATION);
+  }
+  
+  // UI toggle functions
+  function toggleEmojiPicker() {
+    showEmojiPicker = !showEmojiPicker;
+    attachmentMenuOpen = false;
+    showGiftPicker = false;
+  }
+  
+  function addEmoji(emoji: string) {
+    message += emoji;
+  }
+  
+  function toggleAttachmentMenu() {
+    attachmentMenuOpen = !attachmentMenuOpen;
+    showEmojiPicker = false;
+    showGiftPicker = false;
+  }
+  
+  function toggleGiftPicker() {
+    showGiftPicker = !showGiftPicker;
+    showEmojiPicker = false;
+    attachmentMenuOpen = false;
+  }
+  
+  function toggleRecording() {
+    isRecording = !isRecording;
+    message = isRecording ? "Recording audio..." : "";
+  }
+  
+  function sendGift(gift: Gift) {
+    if (!userId) return;
     
-    // Toggle attachment menu
-    function toggleAttachmentMenu() {
-      attachmentMenuOpen = !attachmentMenuOpen;
-      showEmojiPicker = false;
-      showGiftPicker = false;
-    }
+    // Show fullscreen animation
+    currentGift = gift;
+    showGiftAnimation = true;
+    showGiftPicker = false;
     
-    // Toggle gift picker
-    function toggleGiftPicker() {
-      showGiftPicker = !showGiftPicker;
-      showEmojiPicker = false;
-      attachmentMenuOpen = false;
-    }
-    
-    // Toggle voice recording
-    function toggleRecording() {
-      isRecording = !isRecording;
-      message = isRecording ? "Recording audio..." : "";
-    }
-    
-    // Send gift function
-    function sendGift(gift: Gift) {
-      if (!userId) return;
+    // Close animation after duration
+    setTimeout(() => {
+      showGiftAnimation = false;
       
-      // Show fullscreen animation
-      currentGift = gift;
-      showGiftAnimation = true;
-      showGiftPicker = false;
-      
-      // Close animation after duration
-      setTimeout(() => {
-        showGiftAnimation = false;
-        
-        // Add gift message to chat
-        const newMessage: ChatMessage = {
-          message: `Sent a ${gift.name} gift!`,
+      // Add gift message to chat
+      if (chatId) {
+        socket?.emit('sendMessage', {
+          chatId,
           from: userId,
-          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          status: 'sent',
+          message: `Sent a ${gift.name} gift!`,
+          createdAt: new Date().toISOString(),
           gift: gift
-        };
-        
-        messages = [...messages, newMessage];
-        scrollToBottom();
-        
-        // Simulate response after delay (this would be removed in production)
-        setTimeout(() => {
-          isTyping = true;
-          setTimeout(() => {
-            isTyping = false;
-            const responseMessage: ChatMessage = {
-              message: `Thank you for the amazing ${gift.name} gift!`,
-              from: userId, // This should be replaced with the receiver's ID in production
-              createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              status: 'sent'
-            };
-            
-            messages = [...messages, responseMessage];
-            scrollToBottom();
-          }, 2000);
-        }, 1000);
-      }, GIFT_ANIMATION_DURATION);
-    }
-    
-    // Change emoji category
-    function changeEmojiCategory(index: number) {
-      currentEmojiCategory = index;
-    }
-    
-    // Socket event handling
-    $effect(() => {
-      if (!socket || !chatId || !userId) return;
-      
-    //   // Join the chat room
-    //   socket.emit('joinChat', chatId);
-      
-    //   // Listen for successful join
-    //   socket.on('chatJoined', (data) => {
-    //     if (data && Array.isArray(data.messages)) {
-    //       messages = data.messages;
-    //       scrollToBottom();
-    //     }
-    //   });
-      
-      // Listen for new messages
-      socket.on('newMessage', (message: ChatMessage) => {
-        if (!message) return;
-        
-        messages = [...messages, message];
-        scrollToBottom();
-        
-        // If message is not from current user, mark as delivered
-        if (message.from !== userId) {
-          socket.emit('readMessage', { 
-            messageId: message._id, 
-            userId: userId 
-          });
-        }
-      });
-      
-      // Listen for message status updates
-      socket.on('messageRead', ({ messageId, userId }) => {
-        if (!messageId || !userId) return;
-        
-        messages = messages.map(msg => 
-          msg?._id === messageId 
-            ? { ...msg, status: 'read', readBy: [...(msg.readBy || []), userId] }
-            : msg
-        );
-      });
-      
-      // Listen for typing indicators
-      socket.on('userTyping', (typingUserId: string) => {
-        if (typingUserId !== userId) {
-          isTyping = true;
-          
-          if (typingTimeout) {
-            clearTimeout(typingTimeout);
-          }
-          
-          typingTimeout = window.setTimeout(() => {
-            isTyping = false;
-          }, TYPING_TIMEOUT_DURATION);
-        }
-      });
-    });
-    
-    // Load chat messages
-    // $effect(() => {
-    //   if (socket && chatId && chatId.length > 1) {s
-    //     socket.emit('getChatMessages', chatId);
-        
-    //     socket.on('chatMessages', (chatMessages: ChatMessage[]) => {
-    //       if (Array.isArray(chatMessages)) {
-    //         messages = [...messages, ...chatMessages];
-    //         scrollToBottom();
-    //       }
-    //     });
-    //   }
-    // });
-    
-    // Handle chat creation response
-    $effect(() => {
-      if (socket && !chatId) {
-        socket.on('chatCreated', (data) => {
-          if (data && data._id) {
-            chatId = data._id;
-            
-            // If we have a pending message, send it now
-            if (message.trim()) {
-              socket.emit('sendMessage', {
-                chatId: data._id,
-                from: userId,
-                message: message.trim(),
-                createdAt: new Date().toISOString(),
-              });
-              
-              message = '';
-            }
-          }
         });
+      } else {
+        createNewChat();
+        // The gift will be sent when chat is created
+        message = `Sent a ${gift.name} gift!`;
       }
-    });
+      
+      scrollToBottom();
+    }, GIFT_ANIMATION_DURATION);
+  }
+  
+  function changeEmojiCategory(index: number) {
+    currentEmojiCategory = index;
+  }
+  
+  function getUserColor() {
+    if ($session.user) {
+      return $session.user.preferences?.color;
+    }
+  }
 
-
-    function getUserColor(){
-        if($session.user){
-            return $session.user.preferences?.color;
-        }
+  function getMessageStatus(msg: ChatMessage) {
+    return msg.readBy?.some(user => user._id === receiverId || user._id === receiverId) ? 'read' : 'sent';
+  }
+  
+  // Visibility change handler to detect when user comes back to the tab
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && chatId) {
+      markMessagesAsRead();
+    }
+  }
+  
+  // Lifecycle methods
+  onMount(async () => {
+    if (!userId || !receiverId) {
+      console.error('Missing user or receiver ID');
+      return;
+    }
+    
+    // Initialize data
+    await Promise.all([
+      getReceiverData(),
+      checkChatStatus(),
+    ]);
+    
+    // Setup socket listeners
+    setupSocketListeners();
+    
+    // Add visibility change listener to mark messages as read when tab becomes visible
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
-    </script>
+  });
+  
+  onDestroy(() => {
+    // Clean up timeouts and event listeners
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Remove visibility change listener  
+   if(typeof document !== 'undefined'){
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+   }
 
+    // Leave chat room and remove socket listeners
+    if (socket && chatId) {
+      socket.emit('leaveChat', chatId);
+      socket.off('chatJoined');
+      socket.off('newMessage');
+      socket.off('messageRead');
+      socket.off('userTyping');
+      socket.off('chatMessages');
+      socket.off('chatCreated');
+    }
+  });
+
+
+function handleIputActive(){
+
+  if(message.trim().length > 0 && InputActive === false){
+    InputActive = true;
+  }else if(message.trim().length < 1){
+    InputActive = false;
+  }
+
+  attachmentMenuOpen = false;
+  showGiftPicker = false;
+}
+
+</script>
   <!-- svelte-ignore a11y_consider_explicit_label -->
   <!-- svelte-ignore a11y_consider_explicit_label -->
   <!-- svelte-ignore a11y_img_redundant_alt -->
@@ -467,25 +511,25 @@ function handleScroll() {
             {#each messages as msg, i}
                 <!-- Message component with animation -->
                 <div
-                    class="flex flex-col mb-2 max-w-[80%] {msg.from === user ? 'ml-auto' : 'mr-auto'}"
+                    class="flex flex-col mb-2 max-w-[80%] {msg.from === userId ? 'ml-auto' : 'mr-auto'}"
                     in:fly={{ y: 20, duration: 300 }}
                 >
                     <!-- Sender indicator if needed -->
                     {#if i === 0 || messages[i-1].from !== msg.from}
-                        <div class="flex items-center {msg.from === user ? 'justify-end' : 'justify-start'}">
-                            <hr class="border-gray-400 {msg.from === user ? 'flex-grow' : 'w-5'}" />
-                            <span class="{msg.from === user ? 'text-'+getUserColor() : 'text-'+receiverData?.preferences?.color} px-2 font-bold text-[10px]">
-                                {msg.from === user ? 'Me' : receiverData?.username}
+                        <div class="flex items-center {msg.from === userId ? 'justify-end' : 'justify-start'}">
+                            <hr class="border-gray-400 {msg.from === userId ? 'flex-grow' : 'w-5'}" />
+                            <span class="{msg.from === userId ? 'text-'+getUserColor() : 'text-'+receiverData?.preferences?.color} px-2 font-bold text-[10px]">
+                                {msg.from === userId ? 'Me' : receiverData?.username}
                             </span>
-                            <hr class="border-gray-400 {msg.from === user ? 'w-5' : 'flex-grow'}" />
+                            <hr class="border-gray-400 {msg.from === userId ? 'w-5' : 'flex-grow'}" />
                         </div>
                     {/if}
     
                     <!-- Message bubble -->
                     <div 
-                        class="px-3 py-2 rounded-lg {msg.from === user ? 
-                            'text-gray-800 bg-'+getUserColor()+' bg-opacity-5 ...' : 
-                            'bg-blue-100 text-gray-800'} shadow-sm"
+                        class="px-3 py-2 rounded-lg {msg.from === userId ? 
+                            `text-gray-800 bg-${getUserColor()}`: 
+                            `bg-${receiverData?.preferences?.color} text-gray-900`} shadow-sm"
                     >
                         {#if msg.gift}
                             <div class="my-2 p-3 bg-gradient-to-br {msg.gift.backgroundGradient} rounded-lg shadow-sm flex flex-col items-center justify-center">
@@ -497,15 +541,13 @@ function handleScroll() {
                     </div>
     
                     <!-- Message info -->
-                    <div class="flex items-center mt-1 {msg.from === user ? 'justify-end' : 'justify-start'} text-[10px] text-gray-500">
+                    <div class="flex items-center mt-1 {msg.from === userId ? 'justify-end' : 'justify-start'} text-[10px] text-gray-500">
                         <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        {#if msg.from === user}
+                        {#if msg.from === userId}
                             <span class="ml-1">
-                                {#if msg.status === 'sent'}
+                                {#if getMessageStatus(msg) === 'sent'}
                                     <i class="fas fa-check"></i>
-                                {:else if msg.status === 'delivered'}
-                                    <i class="fas fa-check-double"></i>
-                                {:else if msg.status === 'read'}
+                                {:else if getMessageStatus(msg) === 'read'}
                                     <i class="fas fa-check-double text-{getUserColor()}"></i>
                                 {/if}
                             </span>
@@ -529,7 +571,7 @@ function handleScroll() {
     
     <div class="flex flex-col items-center justify-center h-full">
         <p class="text-gray-500">No chats found!</p>
-        <p class="text-gray-500">Say Hello to Neza Hakim!</p>
+        <p class="text-gray-500">Say Hello to {receiverData?.name}</p>
     </div>
 
     {/if}
@@ -634,14 +676,14 @@ function handleScroll() {
       <!-- Input area -->
       <form onsubmit={handleSend} class="bg-white p-2 flex items-center gap-2 border-t border-gray-200">
           <!-- Gift button -->
-          <button 
+           {#if InputActive === false}
+           <button 
               type="button" 
               onclick={toggleGiftPicker}
               class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200"
           >
               <i class="fas fa-gift"></i>
           </button>
-          
           <button 
               type="button" 
               onclick={toggleAttachmentMenu}
@@ -649,6 +691,7 @@ function handleScroll() {
           >
               <i class="fas fa-paperclip"></i>
           </button>
+          {/if}
           
           <button 
               type="button" 
@@ -717,14 +760,14 @@ function handleScroll() {
                           <i class="fas {currentGift.icon} {currentGift.animation} {currentGift.color} text-9xl mb-6 z-10"></i>
                       </div>
                       <h2 class="text-center text-white text-2xl font-bold mb-1">{currentGift.name} Gift!</h2>
-                      <p class="text-center text-white text-lg opacity-90">Neza will love this!</p>
+                      <p class="text-center text-white text-lg opacity-90">{receiverData?.name} will love this!</p>
                   </div>
               </div>
           </div>
       {/if}
   </main> 
   
-  <style lang="css">
+<style lang="css">
       /* Animation for typing dots */
       .animate-bounce {
           animation: bounce 1.4s infinite;

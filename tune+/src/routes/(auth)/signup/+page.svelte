@@ -32,7 +32,7 @@
   let avatar = $state("");
   let preferences = $state<User['preferences']>({
         theme: 'light',
-        color: 'blue-500'
+        color: '#3B82F6'
   });
 
      // Available avatar options
@@ -43,10 +43,10 @@
     ];
  // Available color options
  const colorOptions = [
-        { name: 'Blue', value: 'blue-500' },
-        { name: 'Green', value: 'green-500' },
-        { name: 'Amber', value: 'amber-500' },
-        { name: 'Red', value: 'red-300' }
+        { name: 'Blue', value: '#2b7fff' },
+        { name: 'Green', value: '#00c951' },
+        { name: 'Amber', value: '#fd9a00' },
+        { name: 'Red', value: '#ffa2a2' }
     ];
 
   let { name, username, email, phone, password, confirmPassword } = $state<User & {password: string, confirmPassword: string}>({
@@ -430,7 +430,7 @@ function nextStep() {
     {/each}
 </div>
 
-{:else if currentStep === STEPS.PREFERENCES}
+{:else if currentStep == STEPS.PREFERENCES}
 
 <div class="text-center mb-6">
     <h2 class="text-2xl font-bold text-gray-800">Customize Your Experience</h2>
@@ -443,7 +443,7 @@ function nextStep() {
         <div class="flex gap-4">
             <button
                 type="button"
-                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences.theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences?.theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
                 onclick={() => preferences.theme = 'light'}
             >
                 <div class="bg-white p-2 rounded shadow-sm mb-2">
@@ -453,7 +453,7 @@ function nextStep() {
             </button>
             <button
                 type="button"
-                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences.theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                class={`flex-1 p-4 rounded-lg border-2 transition-all ${preferences?.theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
                 onclick={() => preferences.theme = 'dark'}
             >
                 <div class="bg-gray-800 p-2 rounded shadow-sm mb-2">
@@ -473,7 +473,8 @@ function nextStep() {
                     class={`p-4 rounded-lg border-2 transition-all ${preferences.color === color.value ? 'border-gray-800' : 'border-gray-200 hover:border-gray-400'}`}
                     onclick={() => preferences.color = color.value}
                 >
-                    <div class={`w-full h-8 rounded bg-${color.value} mb-2`}></div>
+                    <div class={`w-full h-8 rounded bg-red-300 mb-2`} style={`background-color: ${color.value};`
+                    }></div>
                     <span class="text-sm font-medium">{color.name}</span>
                 </button>
             {/each}

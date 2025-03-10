@@ -63,6 +63,15 @@ app.get('/get-chats/:id',async(req, res)=>{
     }
 })
 
+app.get('/get-chat-messages/:id', async(req, res)=>{
+    const id = req.params.id;
+    const chats = new ChatController();
+    if(chats && id){
+        const result = await chats.getChatMessages(new ObjectId(id));
+        res.json(result)
+    }
+})
+
 app.get('/get-chats',async(req, res)=>{
     const chats = new ChatController();
     if(chats){

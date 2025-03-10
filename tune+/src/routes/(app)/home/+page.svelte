@@ -1,59 +1,3 @@
-<!-- <script lang="ts">
-  
-</script>
-
-<main class="h-full flex flex-col justify-between">
-
-    <header class="flex items-center justify-between p-4"> 
-         <div class="flex items-center gap-2">
-            <img class="w-[24px] h-[24px] bg-blue-500 rounded-[8px] p-1" src="/favicon.png" alt="Img">
-            <span class="font-bold">Tune+</span>
-         </div>
-
-         <i class="w-[24px] h-[24px] text-blue-500 fa-solid fa-ellipsis-vertical"></i>
-    </header>
-
-    <div class="w-full flex flex-col gap-1">
-        <div class="w-full relative flex items-center px-4 py-3">
-            <input class="w-full bg-gray-200 py-2 px-4 rounded-xl" type="text"  placeholder="Search..."/>
-            <i class="fas fa-magnifying-glass text-blue-500 absolute right-6"></i>
-         </div>
-        <div class="border-b-1 border-gray-200 py-1">
-            <ul class="flex items-center justify-between">
-                <li class="bg-gray-300 mx-4 text-white rounded-2xl w-1/3 p-2 text-center text-[14px] font-medium"> <button>All</button> </li>
-                <li class="w-full p-2 text-center text-[14px] font-medium"> <button>Groups</button> </li>
-                <li class="w-full p-2 text-center text-[14px] font-medium"> <button>Channels</button> </li>
-                <li class="w-full p-2 text-center text-[14px] font-medium"> <button>Personal</button> </li>
-            </ul>
-        </div>
-    </div>
-
-
-    <div class="w-full overflow-y-auto max-h-[calc(100vh-100px)] scroll-smooth overscroll-behavior-y: contain will-change-scroll scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-200 ">
-         {#each [1,2,3,4,1,1,1,1,1,1,1,,1,1,1,1,1,1,1,,1,1,1,1,1,1,,1,1,1,1,1,1,,1,1,1,1,1,1,1,1,1,1,1,1,,1,1,1,1] as index }
-         <div class="flex items-center gap-3">
-            <div class="w-[40pxs] h-[40px] bg-gray-200 p-1 ml-4 rounded-xl">
-                <img class="w-[34px] h-[34px] rounded-xl" src="/1.jpg" alt="">
-                <span class="w-[10px] h-[10px] bg-blue-500 rounded-full "></span>
-            </div>
-            <div class="py-2 border-b-1 border-gray-300 w-full">
-                <h1 class="font-semibold text-amber-500 text-[14px]">Neza Hakim</h1>
-                <span class=" font-light text-[14px] ">You: welcome to the new way of coding with me!</span>
-            </div>
-         </div>
-         {/each}
-
-    </div>
-
-    <div class="absolute bottom-0 right-0 m-5">
-        <div class="w-[50px] h-[50px] bg-blue-500 rounded-full flex items-center justify-center">
-            <i class="fas fa-plus"></i>
-        </div>
-    </div>
-
-</main> -->
-
-
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
@@ -61,26 +5,35 @@
     import { chats } from '$lib/stores/chatStore';
     import type { Chat } from '$lib/types';
 	import { session } from '$lib/stores/session';
+	import axios from 'axios';
 
     let selectedCategory = $state('all');
     let searchQuery = $state('');
     let socket: any;
     let userId = $state()
+    
+    const API_BASE_URL = 'http://localhost:3000'
 
     // Filter categories
-    const categories = ['all', 'groups', 'channels', 'personal'];
+    const categories = ['all', 'groups', 'channels', 'private'];
 
     const filteredChats = $derived($chats
+        // First sort by lastMessage.createdAt
+        .sort((a, b) => {
+            const dateA = new Date(a.lastMessage?.createdAt || 0).getTime();
+            const dateB = new Date(b.lastMessage?.createdAt || 0).getTime();
+            return dateB - dateA; // Most recent first
+        })
+        // Then apply filters
         .filter(chat => {
             if (selectedCategory === 'all') return true;
-
-            return chat.type === selectedCategory;
-            
+            return chat.chatType === selectedCategory;
         })
         .filter(chat => 
-            chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            chat.lastMessage.message.toLowerCase().includes(searchQuery.toLowerCase())
+            getName(chat).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            chat.lastMessage?.message.toLowerCase().includes(searchQuery.toLowerCase())
         ))
+
 
     onMount(() => {
         socket = socketStore.connect();
@@ -92,13 +45,8 @@
 
         // Fetch initial chats
         if($session.user && $session.user.id){
+            getInitialChats($session.user.id);
             userId = $session.user.id
-
-            socket.emit('getChats', $session.user.id)
-            socket.on("chats", (Chats: Chat[]) => {
-                chats.addChats(Chats);
-            })
-
         }
         
     });
@@ -107,13 +55,31 @@
         socketStore.disconnect();
     });
 
+
+    // Fetch Initial chat data
+    async function getInitialChats(userId: string) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/get-chats/${userId}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.data && response.data.data) {
+            chats.addChats(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching receiver data:', error);
+      }
+    }
+
     async function handleChatClick(chatId: string, participants:any) {
 
         let id = participants[0]?._id === userId ? participants[1]?._id : participants[0]?._id;
 
         try {
             socket.emit('joinChat', chatId);
-            goto(`/chats/${id}`);
+            // goto(`/chats/${id}`);
             window.location.href = `/chats/${id}`
         } catch (error) {
             console.error('Failed to join chat:', error);
@@ -172,11 +138,15 @@
         }
     }
 
+    function getUnreadCount(chat: Chat){
+        return chat.unreadCount;
+    }
+
 </script>
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_consider_explicit_label -->
-<main class="h-full flex flex-col justify-between">
+<main class="h-full flex flex-col justify-between ">
     <header class="flex items-center justify-between p-4"> 
         <div class="flex items-center gap-2">
             <img class="w-[24px] h-[24px] bg-{getUserColor()} rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo">
@@ -196,7 +166,7 @@
             <i class="fas fa-magnifying-glass text-{getUserColor()} absolute right-6"></i>
         </div>
 
-        <div class="border-b-1 border-gray-200 py-1">
+        <div class=" border-b-1 border-gray-200 py-1">
             <ul class="flex items-center justify-between">
                 {#each categories as category}
                     <li class="w-full">
@@ -240,7 +210,7 @@
                         </span>
                         {#if chat.unreadCount}
                             <span class="bg-{getUserColor()} text-white rounded-full px-2 py-1 text-xs mr-4">
-                                {chat.unreadCount}
+                                {getUnreadCount(chat)}
                             </span>
                         {/if}
                     </div>
