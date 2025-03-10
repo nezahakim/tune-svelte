@@ -127,12 +127,12 @@
     function getLastMessage(chat: Chat){
         if(chat.chatType === 'private'){
             return {
-                message: chat.lastMessage.message,
+                message: (chat.lastMessage.message.length > 20) ? chat.lastMessage.message.slice(0, 30) + '...' : chat.lastMessage.message,
                 user: chat.lastMessage?.user?._id === userId ?'Me:': ''
             }
         }else{
             return {
-                message: chat.lastMessage.message,
+                message: (chat.lastMessage.message.length > 20) ? chat.lastMessage.message.slice(0, 30) + '...' : chat.lastMessage.message,
                 user: chat.lastMessage?.user?._id === userId ?'Me': chat.lastMessage.user.name.split(' ')[0]
             }
         }
@@ -149,10 +149,12 @@
 <main class="h-full flex flex-col justify-between ">
     <header class="flex items-center justify-between p-4"> 
         <div class="flex items-center gap-2">
-            <img class="w-[24px] h-[24px] bg-{getUserColor()} rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo">
+            <img class="w-[24px] h-[24px] bg-[{getUserColor()}] rounded-[8px] p-1" src="/favicon.png" alt="Tune+ Logo"
+            style={`background-color: ${getUserColor()}`} />
             <span class="font-bold">Tune+</span>
         </div>
-        <i class=" w-[24px] h-[24px] text-{getUserColor()} fa-solid fa-ellipsis-vertical"></i>
+        <i class=" w-[24px] h-[24px] text-[{getUserColor()}] fa-solid fa-ellipsis-vertical"
+        style={`color: ${getUserColor()}`} ></i>
     </header>
 
     <div class="w-full flex flex-col gap-1">
@@ -163,7 +165,8 @@
                 bind:value={searchQuery}
                 placeholder="Search..."
             />
-            <i class="fas fa-magnifying-glass text-{getUserColor()} absolute right-6"></i>
+            <i class="fas fa-magnifying-glass text-[{getUserColor()}] absolute right-6"
+            style={`color: ${getUserColor()}`}></i>
         </div>
 
         <div class=" border-b-1 border-gray-200 py-1">
@@ -189,7 +192,8 @@
                 class="flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
                 onclick={() => handleChatClick(chat.id, chat.participants)}
             >
-                <div class="flex items-center justify-center w-[40px] h-[40px] bg-{getPreferenceColor(chat)} ml-4 rounded-xl relative">
+                <div class="flex items-center justify-center w-[40px] h-[40px] bg-[{getPreferenceColor(chat)}] ml-4 rounded-xl relative"
+                style={`background-color: ${getPreferenceColor(chat)}`}>
                     <img class="w-[40px] h-[40px] rounded-xl" src={getAvatar(chat)} alt={chat.name}>
                     {#if chat.isOnline}
                         <span class="w-[10px] h-[10px] bg-blue-500 rounded-full absolute bottom-1 right-1"></span>
@@ -197,7 +201,9 @@
                 </div>
                 <div class="py-2 border-b-1 border-gray-300 w-full">
                     <div class="flex justify-between items-center">
-                        <h1 class="font-semibold text-{getPreferenceColor(chat)} text-[14px]">{getName(chat)}</h1>
+                        <h1 
+                        style={`color: ${getPreferenceColor(chat)}`}
+                        class="font-semibold text-[{getPreferenceColor(chat)}] text-[14px]">{getName(chat)}</h1>
                         {#if chat.lastMessage.createdAt}
                             <span class="text-xs text-gray-500 mr-4 ">
                                 {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -209,7 +215,9 @@
                             <p class="font-bold text-[12px]">{getLastMessage(chat).user}</p> {getLastMessage(chat).message}
                         </span>
                         {#if chat.unreadCount}
-                            <span class="bg-{getUserColor()} text-white rounded-full px-2 py-1 text-xs mr-4">
+                            <span class="bg-[{getUserColor()}] text-white rounded-full px-2 py-1 text-xs mr-4"
+                                style={`background-color: ${getUserColor()}`}
+                            >
                                 {getUnreadCount(chat)}
                             </span>
                         {/if}
@@ -227,7 +235,8 @@
 
     <div class="absolute bottom-0 right-0 m-5">
         <button
-            class="w-[50px] h-[50px] bg-{getUserColor()} rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors duration-200"
+            class="w-[50px] h-[50px] bg-[{getUserColor()}] rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors duration-200"
+            style={`background-color: ${getUserColor()}`}
             onclick={handleCreateNewChat}
         >
             <i class="fas fa-plus"></i>

@@ -88,6 +88,14 @@ app.get('/delete-chats',async(req, res)=>{
     }
 })
 
+app.get('/delete-messages',async(req, res)=>{
+    const chats = new ChatController();
+    if(chats){
+        const result = await chats.deleteAllMessages();
+        res.json(result)
+    }
+})
+
 app.get('/get-messages/:id', async(req, res)=>{   
     const id = new ObjectId(req.params.id);
     const chats = new ChatController();

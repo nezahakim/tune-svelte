@@ -28,7 +28,7 @@
   let chatContainer = $state<HTMLDivElement | null>(null);
   
   // UI state variables
-  let typing = $state(false);
+  let typing = $state<string | null>(null);
   let unreadMessages = $state(0);
   let chatStatus = $state(false);
   let chatId = $state<string | undefined>(undefined);
@@ -173,8 +173,15 @@
     
     // Listen for typing indicators
     socket.on('user-Typing', (typingUserId: string) => {
+
+      if(typingUserId === userId) {
+        isTyping = false;
+        typing = null
+      }
+
       if (typingUserId !== userId) {
         isTyping = true;
+        typing = typingUserId;
         
         if (typingTimeout) {
           clearTimeout(typingTimeout);
@@ -183,9 +190,7 @@
         typingTimeout = window.setTimeout(() => {
           isTyping = false;
         }, TYPING_TIMEOUT_DURATION);
-      } else {
-        isTyping = false;
-      }
+      } 
     });
     
     // Handle chat creation response
@@ -463,34 +468,50 @@ function handleIputActive(){
       <!-- Header -->
       <header class="bg-white flex items-center justify-between p-3 shadow-md"> 
           <div class="flex items-center gap-2">
-              <a href="/home" class="p-2 text-{receiverData?.preferences?.color} hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <a 
+              style={`color: ${receiverData?.preferences?.color}`}
+              href="/home" class="p-2 text-{receiverData?.preferences?.color} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-arrow-left"></i>
               </a>
-              <div class="relative flex items-center justify-center w-[40px] h-[40px] bg-{receiverData?.preferences?.color} rounded-xl">
+              <div 
+              style={`background-color: ${receiverData?.preferences?.color} `}
+              class="relative flex items-center justify-center w-[40px] h-[40px] bg-{receiverData?.preferences?.color} rounded-xl">
                   <img class="w-[38px] h-[38px] rounded-xl object-cover" src="{receiverData?.avatar}" alt="Profile Picture">
-                  <span class="absolute bottom-0 right-0 w-3 h-3 bg-{getUserColor()} border-2 border-white rounded-full"></span>
+                  <span 
+                  style={`background-color: ${getUserColor()}`}
+                  class="absolute bottom-0 right-0 w-3 h-3 bg-{getUserColor()} border-2 border-white rounded-full"></span>
               </div>
               <div class="flex flex-col">
-                  <h1 class="font-semibold text-{receiverData?.preferences?.color} text-[14px]">{receiverData?.name}</h1>
+                  <h1 
+                  style={`color: ${receiverData?.preferences?.color}`}
+                  class="font-semibold text-{receiverData?.preferences?.color} text-[14px]">{receiverData?.name}</h1>
                   <div class="flex items-center font-light text-[13px]">
-                      {#if isTyping}
+                      {#if isTyping && typing !== userId}
                           <span class="text-gray-600 italic">typing<span class="animate-pulse">...</span></span>
                       {:else}
                           <span class="text-gray-600">online</span>
-                          <span class="flex items-center ml-1 w-[5px] h-[5px] bg-{getUserColor()} rounded-full"></span>
+                          <span 
+                          style={`background-color: ${getUserColor()}`}
+                          class="flex items-center ml-1 w-[5px] h-[5px] bg-{getUserColor()} rounded-full"></span>
                       {/if}
                   </div>
               </div>
           </div>
         
           <div class="flex items-center gap-3">
-              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button 
+              style={`color: ${getUserColor()}`}
+              class="p-2 text-[{getUserColor()}] hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-phone"></i>
               </button>
-              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button
+              style={`color: ${getUserColor()}`} 
+              class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-video"></i>
               </button>
-              <button class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
+              <button 
+              style={`color: ${getUserColor()}`}
+              class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-ellipsis-v"></i>
               </button>
           </div>
@@ -517,19 +538,20 @@ function handleIputActive(){
                     <!-- Sender indicator if needed -->
                     {#if i === 0 || messages[i-1].from !== msg.from}
                         <div class="flex items-center {msg.from === userId ? 'justify-end' : 'justify-start'}">
-                            <hr class="border-gray-400 {msg.from === userId ? 'flex-grow' : 'w-5'}" />
-                            <span class="{msg.from === userId ? 'text-'+getUserColor() : 'text-'+receiverData?.preferences?.color} px-2 font-bold text-[10px]">
+                            <hr class="border-gray-400 {msg.from === userId ? 'flex-grow' : 'w-3'}" />
+                            <span 
+                            style={`color: ${msg.from === userId ? getUserColor() : receiverData?.preferences?.color}`}
+                            class="px-2 font-bold text-[10px]">
                                 {msg.from === userId ? 'Me' : receiverData?.username}
                             </span>
-                            <hr class="border-gray-400 {msg.from === userId ? 'w-5' : 'flex-grow'}" />
+                            <hr class="border-gray-400 {msg.from === userId ? 'w-3' : 'flex-grow'}" />
                         </div>
                     {/if}
     
                     <!-- Message bubble -->
                     <div 
-                        class="px-3 py-2 rounded-lg {msg.from === userId ? 
-                            `text-gray-800 bg-${getUserColor()}`: 
-                            `bg-${receiverData?.preferences?.color} text-gray-900`} shadow-sm"
+                    style={`background-color: ${msg.from === userId ? getUserColor() : receiverData?.preferences?.color }`}
+                        class="px-3 py-2 rounded-lg text-white shadow-sm"
                     >
                         {#if msg.gift}
                             <div class="my-2 p-3 bg-gradient-to-br {msg.gift.backgroundGradient} rounded-lg shadow-sm flex flex-col items-center justify-center">
@@ -548,7 +570,9 @@ function handleIputActive(){
                                 {#if getMessageStatus(msg) === 'sent'}
                                     <i class="fas fa-check"></i>
                                 {:else if getMessageStatus(msg) === 'read'}
-                                    <i class="fas fa-check-double text-{getUserColor()}"></i>
+                                    <i 
+                                    style={`color: ${getUserColor()}`}
+                                    class="fas fa-check-double text-{getUserColor()}"></i>
                                 {/if}
                             </span>
                         {/if}
@@ -557,7 +581,7 @@ function handleIputActive(){
             {/each}
     
             <!-- Typing indicator -->
-            {#if isTyping}
+            {#if isTyping && typing !== userId}
                 <div class="flex items-center gap-2 mb-2 max-w-[80%] mr-auto" in:fade>
                     <div class="px-3 py-2 rounded-lg bg-gray-200 flex items-center gap-1">
                         <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
@@ -581,6 +605,7 @@ function handleIputActive(){
           <!-- svelte-ignore a11y_consider_explicit_label -->
           <button 
               onclick={scrollToBottom}
+              style={`background-color: ${getUserColor()}`}
               class="absolute bottom-16 right-4 bg-{getUserColor()} text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-colors duration-200"
               in:scale
               out:fade
@@ -680,6 +705,7 @@ function handleIputActive(){
            <button 
               type="button" 
               onclick={toggleGiftPicker}
+              style={`color: ${getUserColor()}`}
               class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200"
           >
               <i class="fas fa-gift"></i>
@@ -705,7 +731,7 @@ function handleIputActive(){
               <input 
                   bind:value={message} 
                   oninput={handleTyping}
-                  class="p-2 pl-4 pr-10 w-full h-[40px] outline-none border border-gray-300 rounded-full focus:border-{getUserColor()} focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
+                  class="p-2 pl-4 pr-10 w-full h-[40px] outline-none border border-gray-300 rounded-full focus:border-[{getUserColor()}] focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
                   placeholder={isRecording ? "Recording audio..." : "Write a message..."}
                   disabled={isRecording}
               />
@@ -723,6 +749,7 @@ function handleIputActive(){
           {#if message.trim() !== ''}
               <button 
                   type="submit" 
+                  style={`background-color: ${getUserColor()}`}
                   class="p-2 bg-{getUserColor()} text-white rounded-full hover:bg-blue-600 transition-colors duration-200 w-10 h-10 flex items-center justify-center"
               >
                   <i class="fas fa-paper-plane"></i>

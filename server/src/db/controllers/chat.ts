@@ -69,7 +69,7 @@ class ChatController{
                 const result = await chatsCollection.deleteMany({});
                 return {
                     success: result.acknowledged && result.deletedCount > 0,
-                    message: result.deletedCount > 0 ? 'All users deleted successfully' : 'No users found'
+                    message: result.deletedCount > 0 ? 'All Chats deleted successfully' : 'No users found'
                 };
             } catch (error) {
                 return {
@@ -78,6 +78,21 @@ class ChatController{
                 };
             }
     }
+
+    public async deleteAllMessages(): Promise<ChatResponse> {
+        try {
+            const result = await chatMessagesCollection.deleteMany({});
+            return {
+                success: result.acknowledged && result.deletedCount > 0,
+                message: result.deletedCount > 0 ? 'All Messages deleted successfully' : 'No users found'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error occurred'
+            };
+        }
+}
 
     // public async getChats(userId: string): Promise<ChatResponse> {
     //     try {
