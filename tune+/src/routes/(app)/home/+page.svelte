@@ -6,13 +6,12 @@
     import type { Chat } from '$lib/types';
 	import { session } from '$lib/stores/session';
 	import axios from 'axios';
+    import { API_BASE_URL } from '$lib/API_BASE'; 
 
     let selectedCategory = $state('all');
     let searchQuery = $state('');
     let socket: any;
     let userId = $state()
-    
-    const API_BASE_URL = 'http://localhost:3000'
 
     // Filter categories
     const categories = ['all', 'groups', 'channels', 'private'];

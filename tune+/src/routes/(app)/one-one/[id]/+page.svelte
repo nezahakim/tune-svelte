@@ -36,7 +36,6 @@
     let durationInterval = $state<number | null>(null);
    
     // Constants and variables
-    const API_BASE_URL = 'http://localhost:3000';
     const userId = $session.user?.id || null;
     const userName = $session.user?.name || 'Me';
     const userAvatar = $session.user?.avatar;
@@ -467,7 +466,7 @@
                     </span>
                 </div> 
             </div>
-            
+
         </div>
      </div>
 

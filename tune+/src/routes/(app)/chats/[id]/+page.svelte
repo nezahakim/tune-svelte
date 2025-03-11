@@ -8,9 +8,10 @@
   import { page } from '$app/stores';
   import axios from 'axios';
   import { socketStore } from '$lib/stores/socketStore';
+  import { API_BASE_URL } from '$lib/API_BASE'; 
+
   
   // Constants
-  const API_BASE_URL = 'http://localhost:3000';
   const TYPING_TIMEOUT_DURATION = 3000;
   const GIFT_ANIMATION_DURATION = 3000;
   
