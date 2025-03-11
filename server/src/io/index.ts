@@ -2,10 +2,19 @@ import { Server, Socket } from "socket.io";
 import { Server as HTTPServer } from 'http';
 import ChatController from "../db/controllers/chat";
 import { ObjectId } from "mongodb";
+import type { User } from "../lib/types";
+
+interface RoomParticipant {
+    userId: string;
+    peerId: string;
+    user: User;
+}
 
 export class SocketHandler {
     private io: Server;
     private chatController: ChatController;
+    private roomParticipants: Record<string, RoomParticipant[]> = {};
+
 
     constructor(server: HTTPServer) {
         this.io = new Server(server, {
@@ -28,7 +37,91 @@ export class SocketHandler {
         this.chatController = new ChatController();
     }
 
+    private handleAudioEvents(socket: Socket): void {
+        // Join audio room
+        socket.on("joinRoom", (roomId: string, peerId: string, user: User) => {
+            // console.log(`User ${socket.id} joined room ${roomId} with peer ID ${peerId}`, user);
+            socket.join(roomId);
+            
+            // Store participant information
+            if (!this.roomParticipants[roomId]) {
+                this.roomParticipants[roomId] = [];
+            }
+            
+            // Check if user is already in room (might be rejoining after refresh)
+            const existingParticipantIndex = this.roomParticipants[roomId].findIndex(
+                p => p.userId === socket.id
+            );
+            
+            if (existingParticipantIndex >= 0) {
+                this.roomParticipants[roomId][existingParticipantIndex] = {
+                    userId: socket.id,
+                    peerId,
+                    user
+                };
+            } else {
+                this.roomParticipants[roomId].push({
+                    userId: socket.id,
+                    peerId,
+                    user
+                });
+            }
+            
+            // Emit to all other users in the room
+            socket.to(roomId).emit("userJoined", {
+                userId: socket.id,
+                user: user
+            });
+        });
+        
+        // Get room participants (for users joining or refreshing)
+        socket.on("getRoomParticipants", (roomId: string) => {
+            if (this.roomParticipants[roomId]) {
+                socket.emit("roomParticipants", this.roomParticipants[roomId]);
+            } else {
+                socket.emit("roomParticipants", []);
+            }
+        });
+        
+        // Leave room
+        socket.on("leaveRoom", (roomId: string, userId: string) => {
+            console.log(`User ${userId} left room ${roomId}`);
+            socket.leave(roomId);
+            
+            // Remove from participants list
+            if (this.roomParticipants[roomId]) {
+                this.roomParticipants[roomId] = this.roomParticipants[roomId].filter(
+                    p => p.userId !== userId
+                );
+                
+                // If room is empty, clean up
+                if (this.roomParticipants[roomId].length === 0) {
+                    delete this.roomParticipants[roomId];
+                }
+            }
+            
+            // Notify others
+            socket.to(roomId).emit("user-disconnected", userId);
+        });
+        
+        // User speaking status
+        socket.on("userSpeaking", (roomId: string, data: { userId: string, speaking: boolean }) => {
+            socket.to(roomId).emit("userSpeaking", data);
+        });
+        
+        // Emoji reactions
+        socket.on("emojiReaction", (roomId: string, data: { userId: string, emoji: string }) => {
+            socket.to(roomId).emit("emojiReaction", data);
+        });
+        
+        // Pass speaking turn
+        socket.on("passSpeaking", (roomId: string, userId: string) => {
+            socket.to(roomId).emit("passSpeaking", userId);
+        });
+    }
+
     private handleChatEvents(socket: Socket): void {
+
         // Join chat room
         socket.on("joinChat", async (chatId: string) => {
             try {
@@ -199,6 +292,7 @@ export class SocketHandler {
     private handleConnection(socket: Socket): void {
         console.log(`Client connected: ${socket.id}`);
         
+        this.handleAudioEvents(socket);
         this.handleChatEvents(socket);
         this.handleUserEvents(socket);
 

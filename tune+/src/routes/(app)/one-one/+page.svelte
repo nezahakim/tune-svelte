@@ -35,7 +35,6 @@
 
 <main class="flex flex-col h-full w-full justify-between bg-gray-600">
     <div class="flex items-center justify-between w-full bg-gray-700 p-2 rounded-b-2xl">
-        <!-- svelte-ignore event_directive_deprecated -->
         <a href="/home" class="flex items-center py-1 px-3 gap-1 bg-amber-200 rounded-4xl hover:bg-amber-300 transition-colors duration-200"
            on:mousedown={(e) => e.currentTarget.style.transform = "scale(0.95)"}
            on:mouseup={(e) => e.currentTarget.style.transform = "scale(1)"}
@@ -53,7 +52,6 @@
             <span class="text-[12px] font-bold flex gap-2">Neza<p class="text-amber-500">speaking...</p></span>
         </div>
 
-        <!-- svelte-ignore event_directive_deprecated -->
         <button class="flex items-center py-1 px-3 gap-1 backdrop-blur-2xl shadow-3xl rounded-4xl bg-amber-100 hover:bg-amber-200 transition-colors duration-200"
                 on:mousedown={(e) => e.currentTarget.style.transform = "scale(0.95)"}
                 on:mouseup={(e) => e.currentTarget.style.transform = "scale(1)"}
@@ -81,9 +79,6 @@
      <div class="rounded-t-2xl bg-gray-700 p-2 flex items-center justify-between">
          <ul class="flex items-center gap-2">
             {#each emojis as emoji}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                <!-- svelte-ignore event_directive_deprecated -->
                 <li class="py-2 bg-gray-300 px-3 rounded-2xl text-blue-500 hover:bg-gray-200 transition-colors duration-200 transform hover:-translate-y-1"
                     on:mousedown={(e) => e.currentTarget.style.transform = "scale(1.1) translateY(-2px)"}
                     on:mouseup={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
@@ -94,8 +89,7 @@
             {/each}
          </ul>
 
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <!-- svelte-ignore event_directive_deprecated -->
+      
         <div class="text-[12px] gap-1 font-bold flex items-center bg-amber-200 p-2 rounded-2xl hover:bg-amber-300 transition-colors duration-200 cursor-pointer"
              on:mousedown={(e) => e.currentTarget.style.transform = "scale(0.95)"}
              on:mouseup={(e) => e.currentTarget.style.transform = "scale(1)"}
@@ -104,8 +98,7 @@
             <span>Mute</span>
         </div>
 
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <!-- svelte-ignore event_directive_deprecated -->
+
         <div class="text-[12px] gap-1 font-bold flex items-center bg-amber-200 p-2 rounded-2xl hover:bg-amber-300 transition-colors duration-200 cursor-pointer"
              on:mousedown={(e) => e.currentTarget.style.transform = "scale(0.95)"}
              on:mouseup={(e) => e.currentTarget.style.transform = "scale(1)"}
