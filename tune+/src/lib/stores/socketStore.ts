@@ -19,6 +19,7 @@ function createSocketStore() {
 
             if (!isAuthenticated || !currentSession.user?.id) {
                 console.error('Cannot connect socket: User not authenticated');
+                window.location.href = '/logout'
                 return null;
             }
 
