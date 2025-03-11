@@ -8,12 +8,6 @@
     import type { Peer, MediaConnection } from 'peerjs';
 
     // Types
-    interface User {
-        id: string;
-        name: string;
-        avatar?: string;
-    }
-
     interface ConnectedUser {
         id: string;
         name: string;
