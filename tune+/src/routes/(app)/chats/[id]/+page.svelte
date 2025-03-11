@@ -500,11 +500,11 @@ function handleIputActive(){
           </div>
         
           <div class="flex items-center gap-3">
-              <button 
+              <a href="/one-one/{receiverData?._id}" 
               style={`color: ${getUserColor()}`}
               class="p-2 text-[{getUserColor()}] hover:bg-gray-100 rounded-full transition-colors duration-200">
                   <i class="fas fa-phone"></i>
-              </button>
+          </a>
               <button
               style={`color: ${getUserColor()}`} 
               class="p-2 text-{getUserColor()} hover:bg-gray-100 rounded-full transition-colors duration-200">
