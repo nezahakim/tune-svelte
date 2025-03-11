@@ -4,6 +4,7 @@
   import { goto } from "$app/navigation";
   import { session } from "$lib/stores/session";
 	import { onMount } from "svelte";
+	import { API_BASE_URL } from "$lib/API_BASE";
 
 
   onMount(() => {
@@ -204,7 +205,7 @@ function nextStep() {
         };
 
       try {
-          const response = await axios.post('http://localhost:3000/auth/signup', userData, {
+          const response = await axios.post(API_BASE_URL+'/auth/signup', userData, {
               headers: {
                   'Content-Type': 'application/json'
               }

@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { session } from "$lib/stores/session";
     import { onMount } from "svelte";
+	import { API_BASE_URL } from "$lib/API_BASE";
   
     // Form states
     let loading = $state(false);
@@ -51,7 +52,7 @@
       error = "";
   
       try {
-        const response = await axios.post('http://localhost:3000/auth/login', {
+        const response = await axios.post(API_BASE_URL+'/auth/login', {
           identifier,
           password
         }, {
