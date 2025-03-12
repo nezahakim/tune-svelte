@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "name": "server",
+    "builds": [
+      {
+        "src": "src/app.ts",
+        "use": "@vercel/bun",
+        "config": {
+          "bun": true
+        }
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "/src/app.ts"
+      }
+    ]
+  }
