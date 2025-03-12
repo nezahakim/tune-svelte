@@ -147,6 +147,20 @@
       socket.emit('joinChat', chatRoomId);
     }
   }
+
+  socket?.on('newMessage', (message: ChatMessage) => {
+      if (!message) return;
+
+      console.log('Message arrived', message)
+      
+      messages = [...messages, message];
+      scrollToBottom();
+
+      // If message is not from current user and chat is open, mark as read
+      if (message.from !== userId && document.visibilityState === 'visible') {
+        markMessageAsRead(message._id);
+      }
+  });
   
   function setupSocketListeners() {
     if (!socket || !userId) return;
