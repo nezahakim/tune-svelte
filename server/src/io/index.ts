@@ -23,10 +23,7 @@ export class SocketHandler {
                 origin: "*",
                 methods: ["GET", "POST", "PUT", "DELETE"]
             },
-            pingInterval: 25000, // Increase ping interval (milliseconds)
-            pingTimeout: 60000,  // Increase ping timeout (milliseconds)
-            transports: ['websocket', 'polling'], //ensure both transports are enabled.
-          
+            transports: ['websocket'],
         });
 
         this.io.use((socket, next) => {
