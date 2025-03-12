@@ -178,6 +178,7 @@
       if(typingUserId === userId) {
         isTyping = false;
         typing = null
+        clearTimeout(typingTimeout);
       }
 
       if (typingUserId !== userId) {
@@ -309,7 +310,6 @@
     
     if (!isTyping) {
       socket?.emit('userTyping', { chatId, userId });
-      isTyping = true;
     }
     
     if (typingTimeout) {

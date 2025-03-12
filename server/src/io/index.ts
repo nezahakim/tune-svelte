@@ -72,6 +72,7 @@ export class SocketHandler {
                 userId: socket.id,
                 user: user
             });
+            
         });
         
         // Get room participants (for users joining or refreshing)
@@ -262,7 +263,8 @@ export class SocketHandler {
         });
 
         socket.on("userTyping", ({ chatId, userId }) => {
-            this.io.to(chatId).emit("user-Typing", userId);
+            // this.io.to(chatId).emit("user-Typing", userId);
+            socket.broadcast.emit("user-Typing", userId)
         });
 
         // Leave chat
