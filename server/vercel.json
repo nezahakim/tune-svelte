@@ -6,7 +6,8 @@
         "src": "src/app.ts",
         "use": "@vercel/node",
         "config": {
-          "bun": true
+            "runtime": "nodejs18.x",
+            "bun": true
         }
       }
     ],
