@@ -306,7 +306,8 @@ export class SocketHandler {
         this.handleChatEvents(socket);
         this.handleUserEvents(socket);
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", (error) => {
+            console.log(error)
             console.log(`Client disconnected: ${socket.id}`);
         });
     }
