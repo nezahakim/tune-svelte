@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { API_BASE_URL } from '$lib/API_BASE';
     import { onMount } from 'svelte'
 
     let users = $state([]);
 
     onMount(async () => {
         try {
-            const response = await fetch('http://localhost:3000/users',{
+            const response = await fetch(API_BASE_URL+'/users',{
                 method:'GET',
                 headers:{
                     'Content-Type':'application/json'
