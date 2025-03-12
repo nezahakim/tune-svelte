@@ -209,6 +209,7 @@ export class SocketHandler {
                 const messageResponse = await this.chatController.createChatMessage(MessageData);
                 if (messageResponse.success) {
                     console.log('Mesage')
+                    socket.emit('new-message', messageResponse.data)
                     this.io.in(messageData.chatId).emit("newMessage", messageResponse.data);
                 } else {
                     socket.emit("error", { message: messageResponse.message });
