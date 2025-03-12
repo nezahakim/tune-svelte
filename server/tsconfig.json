@@ -26,37 +26,16 @@
 //   }
 // }
 
-
 {
   "compilerOptions": {
-    // Enable latest features
-    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
-    "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
-
-    // Ensure output is emitted
-    "moduleResolution": "node",  // Change from "bundler" to "node"
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-
-    // Enable output to a dist folder
-    "noEmit": false,  // Set this to false to generate JavaScript files
-
-    // Best practices
+    "outDir": "./dist",  // Ensure compiled files go here
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-
-    // Output directory for compiled files
-    "outDir": "./dist"  // Specify where to put the compiled files (e.g., `dist` folder)
+    "noEmit": false,  // Make sure TypeScript outputs .js files
+    "jsx": "react-jsx"
   },
   "include": [
     "src/**/*.ts"
