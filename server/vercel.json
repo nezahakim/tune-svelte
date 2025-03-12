@@ -1,20 +1,16 @@
 {
-    "version": 2,
-    "name": "bun-server",
-    "builds": [
-      {
-        "src": "src/app.ts",
-        "use": "@vercel/node",
-        "config": {
-            "runtime": "nodejs18.x",
-            "bun": true
-        }
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "/src/app.ts"
-      }
-    ]
-  }
+  "version": 2,
+  "name": "bun-server",
+  "builds": [
+    {
+      "src": "dist/app.js", 
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/dist/app.js"
+    }
+  ]
+}
