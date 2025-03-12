@@ -154,6 +154,8 @@
     // Listen for new messages
     socket.on('newMessage', (message: ChatMessage) => {
       if (!message) return;
+
+      console.log('Message arrived', message)
       
       messages = [...messages, message];
       scrollToBottom();
