@@ -87,6 +87,12 @@ app.get('/delete-chats',async(req, res)=>{
     const chats = new ChatController();
     if(chats){
         const result = await chats.deleteAllChats();
+
+        if(result){
+            const result = await chats.deleteAllMessages();
+            res.json(result)
+        }
+        
         res.json(result)
     }
 })

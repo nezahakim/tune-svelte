@@ -3,6 +3,7 @@ import { Server as HTTPServer } from 'http';
 import ChatController from "../db/controllers/chat";
 import { ObjectId } from "mongodb";
 import type { User } from "../lib/types";
+import UserController from "../db/controllers/user";
 
 interface RoomParticipant {
     userId: string;
@@ -68,7 +69,7 @@ export class SocketHandler {
             }
             
             // Emit to all other users in the room
-            socket.to(roomId).emit("userJoined", {
+            this.io.in(roomId).emit("userJoined", {
                 userId: socket.id,
                 user: user
             });
@@ -78,9 +79,9 @@ export class SocketHandler {
         // Get room participants (for users joining or refreshing)
         socket.on("getRoomParticipants", (roomId: string) => {
             if (this.roomParticipants[roomId]) {
-                socket.emit("roomParticipants", this.roomParticipants[roomId]);
+                this.io.in(roomId).emit("roomParticipants", this.roomParticipants[roomId]);
             } else {
-                socket.emit("roomParticipants", []);
+                this.io.in(roomId).emit("roomParticipants", []);
             }
         });
         
@@ -112,7 +113,7 @@ export class SocketHandler {
         
         // Emoji reactions
         socket.on("emojiReaction", (roomId: string, data: { userId: string, emoji: string }) => {
-            socket.to(roomId).emit("emojiReaction", data);
+            this.io.in(roomId).emit("emojiReaction", data);
         });
         
         // Pass speaking turn
@@ -177,9 +178,11 @@ export class SocketHandler {
                 if (chatResponse.success) {
                     const chatId = chatResponse.data._id.toString();
                     socket.join(chatId);
-                    chatData.participants.forEach((participantId: string) => {
-                        this.io.to(participantId).emit("chatCreated", chatResponse.data);
-                    });
+                    this.io.in(chatId).emit("chatCreated", chatResponse.data);
+
+                    // chatData.participants.forEach((participantId: string) => {
+                    //     this.io.to(chatId).emit("chatCreated", chatResponse.data);
+                    // });
                 } else {
                     socket.emit("error", { message: chatResponse.message });
                 }
@@ -204,7 +207,8 @@ export class SocketHandler {
 
                 const messageResponse = await this.chatController.createChatMessage(MessageData);
                 if (messageResponse.success) {
-                    this.io.to(messageData.chatId.toString()).emit("newMessage", messageResponse.data);
+                    socket.broadcast
+                    this.io.in(messageData.chatId).emit("newMessage", messageResponse.data);
                 } else {
                     socket.emit("error", { message: messageResponse.message });
                 }
@@ -233,16 +237,20 @@ export class SocketHandler {
         });
 
         // Mark message as read
-        socket.on("readMessage", async ({ messageId, userId }) => {
+        socket.on("readMessage", async ({ messageId, userId, chatId}) => {
             try {
                 const readResponse = await this.chatController.readMessage(
                     new ObjectId(messageId),
                     new ObjectId(userId)
                 );
+                
+                const user = new UserController();
+                const result = await user.getUserById(new ObjectId(userId));
+
                 if (readResponse.success) {
-                    this.io.to(messageId).emit("messageRead", {
+                    this.io.in(chatId).emit("messageRead", {
                         messageId,
-                        userId
+                        user: result.data
                     });
                 }
             } catch (error) {
@@ -264,7 +272,7 @@ export class SocketHandler {
 
         socket.on("userTyping", ({ chatId, userId }) => {
             // this.io.to(chatId).emit("user-Typing", userId);
-            socket.broadcast.emit("user-Typing", userId)
+            socket.to(chatId).emit("user-Typing", userId)
         });
 
         // Leave chat

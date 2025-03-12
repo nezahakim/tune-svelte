@@ -9,6 +9,7 @@
   import axios from 'axios';
   import { socketStore } from '$lib/stores/socketStore';
   import { API_BASE_URL } from '$lib/API_BASE'; 
+	import { goto } from '$app/navigation';
 
   
   // Constants
@@ -45,6 +46,8 @@
   let currentEmojiCategory = $state(0);
 
   let InputActive = $state(false);
+
+  let InitMessage = $state('')
 
 
   // Scroll functions
@@ -162,14 +165,17 @@
     });
     
     // Listen for message status updates
-    socket.on('messageRead', ({ messageId, userId: readerId }) => {
-      if (!messageId || !readerId) return;
+    socket.on('messageRead', ({ messageId, user }) => {
+      if (!messageId || !user._id) return;
 
-      messages = messages.map(msg => 
-        msg?._id === messageId 
-          ? { ...msg, status: 'read', readBy: [...(msg.readBy || []), readerId] }
-          : msg
-      );
+      messages = messages.map(msg => {
+        if(msg._id === messageId){
+          return {...msg, status:'read', readBy: [...(msg.readBy)|| [], user]}
+        }else{
+          return msg
+        }
+      });
+      
     });
     
     // Listen for typing indicators
@@ -199,13 +205,20 @@
     socket.on('chatCreated', (data) => {
       if (data && data._id) {
         chatId = data._id;
-        joinChatRoom(data._id);
+
+        getInitialChatMessages(data._id)
         
         // If we have a pending message, send it now
-        if (message.trim()) {
-          sendMessageToChat(data._id, message.trim());
+        if (InitMessage.trim()) {
+          sendMessageToChat(data._id, InitMessage.trim());
+          window.location.href = '/chats/'+receiverId
           message = '';
+          InitMessage = '';
+        }else{
+          console.log(InitMessage)
         }
+      }else{
+        console.log('No data')
       }
     });
   }
@@ -232,7 +245,8 @@
     
     socket.emit('readMessage', {
       messageId: messageId,
-      userId: userId
+      userId: userId,
+      chatId: chatId
     });
   }
   
@@ -282,6 +296,7 @@
         sendMessageToChat(chatId, message.trim());
       } else {
         // Create new chat first
+        InitMessage = message;
         createNewChat();
         // Message will be sent when chat is created via socket listener
       }
@@ -391,7 +406,7 @@
   }
 
   function getMessageStatus(msg: ChatMessage) {
-    return msg.readBy?.some(user => user._id === receiverId || user._id === receiverId) ? 'read' : 'sent';
+    return msg.readBy?.some(user => user._id === receiverId) ? 'read' : 'sent';
   }
   
   // Visibility change handler to detect when user comes back to the tab
@@ -414,8 +429,8 @@
       checkChatStatus(),
     ]);
     
-    // Setup socket listeners
-    setupSocketListeners();
+    // // Setup socket listeners
+    // setupSocketListeners();
     
     // Add visibility change listener to mark messages as read when tab becomes visible
     if (typeof document !== 'undefined') {
@@ -423,6 +438,10 @@
     }
 
   });
+
+   // Setup socket listeners
+    setupSocketListeners();
+   
   
   onDestroy(() => {
     // Clean up timeouts and event listeners
