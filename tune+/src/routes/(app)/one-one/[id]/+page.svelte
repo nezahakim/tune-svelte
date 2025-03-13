@@ -75,12 +75,22 @@
                 // Start duration timer
                 callStartTime = Date.now();
                 durationInterval = setInterval(updateDuration, 1000) as unknown as number;
+
+                const options = {
+                    mimeTye: 'video/mp4',
+                    frameRate: 60,
+                    audioBitsPerSecond: 2_500_000,
+                    videoBitsPerSecond: 2_500_000,
+                    audio: true,
+                }
+                
                 
                 // Initialize media stream
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    video: false,
+                    video: {frameRate: options.frameRate},
                     audio: true
                 });
+
                 
                 // Initialize speech detection
                 setupSpeechDetection();

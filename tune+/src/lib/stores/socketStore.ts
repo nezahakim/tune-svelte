@@ -27,7 +27,8 @@ function createSocketStore() {
                 auth: {
                     userId: currentSession.user.id,
                     token: currentSession.token
-                }
+                },
+                transports: ['websocket']
             });
 
             set(socket);
