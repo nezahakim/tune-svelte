@@ -77,19 +77,33 @@
                 durationInterval = setInterval(updateDuration, 1000) as unknown as number;
 
                 const options = {
-                    mimeTye: 'video/mp4',
-                    frameRate: 60,
-                    audioBitsPerSecond: 2_500_000,
-                    videoBitsPerSecond: 2_500_000,
-                    audio: true,
-                }
-                
-                
-                // Initialize media stream
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    video: {frameRate: options.frameRate},
-                    audio: true
-                });
+    mimeType: 'video/mp4',
+    frameRate: 60,
+    audioBitsPerSecond: 128000, // Optimal for high quality audio
+    videoBitsPerSecond: 2500000,
+    audio: true
+}
+
+// Enhanced media stream configuration
+const mediaStreamConfig = {
+    video: {
+        frameRate: options.frameRate
+    },
+    audio: {
+        channelCount: 2, // Stereo audio
+        sampleRate: 48000, // Professional audio sample rate
+        sampleSize: 16, // Standard audio bit depth
+        echoCancellation: true, // Removes echo
+        noiseSuppression: true, // Reduces background noise
+        autoGainControl: true, // Maintains consistent volume levels
+        latency: 0,
+        deviceId: undefined // Will use default audio device
+    }
+}
+
+// Initialize media stream with enhanced audio
+const localStream = await navigator.mediaDevices.getUserMedia(mediaStreamConfig);
+
 
                 
                 // Initialize speech detection
