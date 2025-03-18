@@ -266,7 +266,12 @@
   
   // Send message helper
   function sendMessageToChat(chatRoomId: string, messageText: string) {
-    if (!socket || !userId) return;
+    // if (!socket || !userId) return;
+    console.log(messageText)
+    if (!socket || !userId) {
+      console.log('None set!')
+      return;
+    }
     
     socket.emit('sendMessage', {
       chatId: chatRoomId,
